@@ -9,6 +9,8 @@ pub struct Conversation {
     pub creator_id: Uuid,
     pub participant_id: Uuid,
     pub created_at: DateTime<Utc>,
+    pub status: String,
+    pub expires_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, sqlx::FromRow)]
@@ -24,12 +26,15 @@ pub struct Message {
 #[derive(Debug, Deserialize)]
 pub struct CreateConversationRequest {
     pub participant_id: Uuid,
+    pub expires_in_minutes: Option<i64>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct ConversationResponse {
     pub id: Uuid,
     pub participant_id: Uuid,
+    pub status: String,
+    pub expires_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
 }
 

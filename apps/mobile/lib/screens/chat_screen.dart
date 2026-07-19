@@ -40,6 +40,8 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _myUserId;
   bool _loading = true;
   bool _connected = false;
+  bool _isActive = true;
+  String _status = 'active';
   List<int>? _sharedSecret;
   WebSocket? _ws;
   Timer? _reconnectTimer;
@@ -82,9 +84,7 @@ class _ChatScreenState extends State<ChatScreen> {
           await _identity.getExchangeKey(_token!, widget.otherUserId);
       final secret = await _crypto.deriveSharedSecret(otherKey);
       if (mounted) setState(() => _sharedSecret = secret);
-    } catch (_) {
-      // Key not available yet
-    }
+    } catch (_) {}
   }
 
   void _connectWs(String token) {
@@ -194,32 +194,102 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  Future<void> _completeConversation() async {
+    if (_token == null) return;
+    try {
+      final conv =
+          await _messaging.completeConversation(_token!, widget.conversationId);
+      if (mounted) {
+        setState(() {
+          _status = conv.status;
+          _isActive = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _destroyConversation() async {
+    if (_token == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Destroy Conversation?'),
+        content: const Text(
+            'This will permanently delete all messages. This action cannot be undone.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Cancel')),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+                backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('Destroy'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _messaging.destroyConversation(_token!, widget.conversationId);
+      if (mounted) Navigator.of(context).pop(true);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Failed: $e')));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.otherUsername),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(widget.otherUsername),
+            const SizedBox(width: 8),
+            _statusIcon(),
+          ],
+        ),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          if (_isActive)
+            IconButton(
+              icon: const Icon(Icons.check_circle_outline),
+              onPressed: _completeConversation,
+              tooltip: 'Complete',
+            ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'destroy') _destroyConversation();
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                  value: 'destroy',
+                  child: Row(
+                    children: [
+                      Icon(Icons.delete_forever, color: Colors.red, size: 20),
+                      SizedBox(width: 8),
+                      Text('Destroy'),
+                    ],
+                  )),
+            ],
+          ),
           Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _connected ? Icons.wifi : Icons.wifi_off,
-                  size: 18,
-                  color: _connected ? Colors.green : Colors.grey,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  _connected ? 'Connected' : 'Offline',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: _connected ? Colors.green : Colors.grey,
-                  ),
-                ),
-              ],
+            padding: const EdgeInsets.only(right: 8),
+            child: Icon(
+              _connected ? Icons.wifi : Icons.wifi_off,
+              size: 18,
+              color: _connected ? Colors.green : Colors.grey,
             ),
           ),
         ],
@@ -300,20 +370,23 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: TextField(
                       controller: _messageController,
                       decoration: InputDecoration(
-                        hintText: 'Type a message...',
+                        hintText: _isActive
+                            ? 'Type a message...'
+                            : 'Conversation $_status',
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),
                       ),
+                      enabled: _isActive,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
                   const SizedBox(width: 8),
                   IconButton.filled(
-                    onPressed: _sendMessage,
+                    onPressed: _isActive ? _sendMessage : null,
                     icon: const Icon(Icons.send),
                   ),
                 ],
@@ -323,5 +396,16 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  Widget _statusIcon() {
+    switch (_status) {
+      case 'completed':
+        return const Icon(Icons.check_circle, size: 18, color: Colors.grey);
+      case 'destroyed':
+        return const Icon(Icons.delete, size: 18, color: Colors.red);
+      default:
+        return const Icon(Icons.circle, size: 12, color: Colors.green);
+    }
   }
 }

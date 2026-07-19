@@ -54,6 +54,38 @@ class ApiClient {
     return _handleResponse(response);
   }
 
+  Future<Map<String, dynamic>> patch(
+    String path,
+    Map<String, dynamic> body, {
+    required String token,
+  }) async {
+    final response = await _client.patch(
+      Uri.parse('$baseUrl$path'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    return _handleResponse(response);
+  }
+
+  Future<void> delete(String path, {required String token}) async {
+    final response = await _client.delete(
+      Uri.parse('$baseUrl$path'),
+      headers: {'Authorization': 'Bearer $token'},
+    );
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      throw ApiException(
+        response.statusCode,
+        body['error'] as String? ?? 'Unknown error',
+      );
+    }
+  }
+
   Map<String, dynamic> _handleResponse(http.Response response) {
     final body = jsonDecode(response.body) as Map<String, dynamic>;
 

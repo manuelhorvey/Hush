@@ -5,11 +5,15 @@ import 'api_client.dart';
 class ConversationInfo {
   final String id;
   final String participantId;
+  final String status;
+  final String? expiresAt;
   final String createdAt;
 
   ConversationInfo({
     required this.id,
     required this.participantId,
+    required this.status,
+    this.expiresAt,
     required this.createdAt,
   });
 
@@ -17,9 +21,14 @@ class ConversationInfo {
     return ConversationInfo(
       id: json['id'] as String,
       participantId: json['participant_id'] as String,
+      status: json['status'] as String? ?? 'active',
+      expiresAt: json['expires_at'] as String?,
       createdAt: json['created_at'] as String,
     );
   }
+
+  bool get isActive => status == 'active';
+  bool get isCompleted => status == 'completed';
 }
 
 class MessageInfo {
@@ -113,5 +122,23 @@ class MessagingService {
     return list
         .map((u) => UserInfo.fromJson(u as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<ConversationInfo> completeConversation(
+      String token, String conversationId) async {
+    final data = await _api.patch(
+      '/api/v1/conversations/$conversationId/complete',
+      {},
+      token: token,
+    );
+    return ConversationInfo.fromJson(data);
+  }
+
+  Future<void> destroyConversation(
+      String token, String conversationId) async {
+    await _api.delete(
+      '/api/v1/conversations/$conversationId',
+      token: token,
+    );
   }
 }

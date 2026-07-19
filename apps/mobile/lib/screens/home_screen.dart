@@ -65,6 +65,22 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _openConversation(ConversationInfo conv) async {
+    final destroyed = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          conversationId: conv.id,
+          otherUsername: 'User ${conv.participantId.substring(0, 8)}',
+          otherUserId: conv.participantId,
+        ),
+      ),
+    );
+
+    if (destroyed == true && _token != null) {
+      _loadConversations(_token!);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -89,12 +105,13 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context).push(
+        onPressed: () async {
+          await Navigator.of(context).push(
             MaterialPageRoute(
               builder: (_) => const NewConversationScreen(),
             ),
           );
+          if (_token != null) _loadConversations(_token!);
         },
         child: const Icon(Icons.add),
       ),
@@ -114,30 +131,51 @@ class _HomeScreenState extends State<HomeScreen> {
                       final conv = _conversations[i];
                       return ListTile(
                         leading: CircleAvatar(
-                          child:
-                              const Icon(Icons.person),
+                          backgroundColor: conv.isActive
+                              ? Colors.green.shade100
+                              : Colors.grey.shade200,
+                          child: Icon(
+                            conv.isActive
+                                ? Icons.chat
+                                : Icons.check_circle_outline,
+                            color: conv.isActive ? Colors.green : Colors.grey,
+                          ),
                         ),
-                        title: Text('User ${conv.participantId.substring(0, 8)}'),
-                        subtitle: Text(
-                          conv.createdAt.substring(0, 10),
+                        title: Text(
+                            'User ${conv.participantId.substring(0, 8)}'),
+                        subtitle: Row(
+                          children: [
+                            Text(conv.createdAt.substring(0, 10)),
+                            const SizedBox(width: 8),
+                            _statusChip(conv.status),
+                          ],
                         ),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (_) => ChatScreen(
-                                conversationId: conv.id,
-                                otherUsername:
-                                    'User ${conv.participantId.substring(0, 8)}',
-                                otherUserId: conv.participantId,
-                              ),
-                            ),
-                          );
-                        },
+                        trailing: const Icon(Icons.arrow_forward_ios,
+                            size: 16),
+                        onTap: () => _openConversation(conv),
                       );
                     },
                   ),
                 ),
+    );
+  }
+
+  Widget _statusChip(String status) {
+    final (label, color) = switch (status) {
+      'completed' => ('Completed', Colors.grey),
+      'destroyed' => ('Destroyed', Colors.red),
+      _ => ('Active', Colors.green),
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
+      ),
     );
   }
 }

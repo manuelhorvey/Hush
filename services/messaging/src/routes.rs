@@ -76,7 +76,7 @@ pub async fn create_conversation(
     }
 
     let existing = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM conversations WHERE (creator_id = $1 AND participant_id = $2) OR (creator_id = $2 AND participant_id = $1)",
+        "SELECT COUNT(*) FROM conversations WHERE (creator_id = $1 AND participant_id = $2) OR (creator_id = $2 AND participant_id = $1) AND status != 'destroyed'",
     )
     .bind(user_id)
     .bind(body.participant_id)
@@ -95,14 +95,18 @@ pub async fn create_conversation(
 
     let conversation_id = Uuid::new_v4();
     let now = chrono::Utc::now();
+    let expires_at = body
+        .expires_in_minutes
+        .map(|m| now + chrono::Duration::minutes(m));
 
     sqlx::query(
-        "INSERT INTO conversations (id, creator_id, participant_id, created_at) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO conversations (id, creator_id, participant_id, created_at, status, expires_at) VALUES ($1, $2, $3, $4, 'active', $5)",
     )
     .bind(conversation_id)
     .bind(user_id)
     .bind(body.participant_id)
     .bind(now)
+    .bind(expires_at)
     .execute(&pool)
     .await
     .map_err(|_| {
@@ -115,6 +119,8 @@ pub async fn create_conversation(
     Ok(Json(ConversationResponse {
         id: conversation_id,
         participant_id: body.participant_id,
+        status: "active".into(),
+        expires_at,
         created_at: now,
     }))
 }
@@ -126,7 +132,7 @@ pub async fn list_conversations(
     let user_id = authenticate(&pool, &headers).await?;
 
     let conversations = sqlx::query_as::<_, Conversation>(
-        "SELECT id, creator_id, participant_id, created_at FROM conversations WHERE creator_id = $1 OR participant_id = $1 ORDER BY created_at DESC",
+        "SELECT id, creator_id, participant_id, created_at, status, expires_at FROM conversations WHERE (creator_id = $1 OR participant_id = $1) AND status != 'destroyed' ORDER BY created_at DESC",
     )
     .bind(user_id)
     .fetch_all(&pool)
@@ -149,6 +155,8 @@ pub async fn list_conversations(
             ConversationResponse {
                 id: c.id,
                 participant_id: other_id,
+                status: c.status,
+                expires_at: c.expires_at,
                 created_at: c.created_at,
             }
         })
@@ -157,6 +165,117 @@ pub async fn list_conversations(
     Ok(Json(ConversationListResponse {
         conversations: list,
     }))
+}
+
+pub async fn complete_conversation(
+    State(pool): State<PgPool>,
+    Path(conversation_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<Json<ConversationResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let user_id = authenticate(&pool, &headers).await?;
+
+    let conversation = sqlx::query_as::<_, Conversation>(
+        "SELECT id, creator_id, participant_id, created_at, status, expires_at FROM conversations WHERE id = $1 AND (creator_id = $2 OR participant_id = $2) AND status = 'active'",
+    )
+    .bind(conversation_id)
+    .bind(user_id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse { error: "conversation lookup failed".into() }),
+        )
+    })?
+    .ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse { error: "active conversation not found".into() }),
+        )
+    })?;
+
+    sqlx::query("UPDATE conversations SET status = 'completed' WHERE id = $1")
+        .bind(conversation_id)
+        .execute(&pool)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "complete failed".into(),
+                }),
+            )
+        })?;
+
+    let other_id = if conversation.creator_id == user_id {
+        conversation.participant_id
+    } else {
+        conversation.creator_id
+    };
+
+    Ok(Json(ConversationResponse {
+        id: conversation_id,
+        participant_id: other_id,
+        status: "completed".into(),
+        expires_at: conversation.expires_at,
+        created_at: conversation.created_at,
+    }))
+}
+
+pub async fn destroy_conversation(
+    State(pool): State<PgPool>,
+    Path(conversation_id): Path<Uuid>,
+    headers: HeaderMap,
+) -> Result<StatusCode, (StatusCode, Json<ErrorResponse>)> {
+    let user_id = authenticate(&pool, &headers).await?;
+
+    let _conversation = sqlx::query_as::<_, Conversation>(
+        "SELECT id, creator_id, participant_id, created_at, status, expires_at FROM conversations WHERE id = $1 AND (creator_id = $2 OR participant_id = $2) AND status != 'destroyed'",
+    )
+    .bind(conversation_id)
+    .bind(user_id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse { error: "conversation lookup failed".into() }),
+        )
+    })?
+    .ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse { error: "conversation not found".into() }),
+        )
+    })?;
+
+    sqlx::query("DELETE FROM messages WHERE conversation_id = $1")
+        .bind(conversation_id)
+        .execute(&pool)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "message deletion failed".into(),
+                }),
+            )
+        })?;
+
+    sqlx::query("UPDATE conversations SET status = 'destroyed' WHERE id = $1")
+        .bind(conversation_id)
+        .execute(&pool)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "destroy failed".into(),
+                }),
+            )
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
 }
 
 pub async fn send_message(
@@ -168,7 +287,7 @@ pub async fn send_message(
     let user_id = authenticate(&pool, &headers).await?;
 
     let conversation = sqlx::query_as::<_, Conversation>(
-        "SELECT id, creator_id, participant_id, created_at FROM conversations WHERE id = $1 AND (creator_id = $2 OR participant_id = $2)",
+        "SELECT id, creator_id, participant_id, created_at, status, expires_at FROM conversations WHERE id = $1 AND (creator_id = $2 OR participant_id = $2) AND status = 'active'",
     )
     .bind(conversation_id)
     .bind(user_id)
@@ -183,7 +302,7 @@ pub async fn send_message(
     .ok_or_else(|| {
         (
             StatusCode::FORBIDDEN,
-            Json(ErrorResponse { error: "not a participant in this conversation".into() }),
+            Json(ErrorResponse { error: "conversation is not active".into() }),
         )
     })?;
 
@@ -270,21 +389,20 @@ pub async fn list_messages(
 ) -> Result<Json<MessageListResponse>, (StatusCode, Json<ErrorResponse>)> {
     let user_id = authenticate(&pool, &headers).await?;
 
-    let is_participant = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM conversations WHERE id = $1 AND (creator_id = $2 OR participant_id = $2)",
+    let conv = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*) FROM conversations WHERE id = $1 AND (creator_id = $2 OR participant_id = $2) AND status != 'destroyed'",
     )
     .bind(conversation_id)
     .bind(user_id)
     .fetch_one(&pool)
     .await
-    .unwrap_or(0)
-        > 0;
+    .unwrap_or(0);
 
-    if !is_participant {
+    if conv == 0 {
         return Err((
-            StatusCode::FORBIDDEN,
+            StatusCode::NOT_FOUND,
             Json(ErrorResponse {
-                error: "not a participant".into(),
+                error: "conversation not found".into(),
             }),
         ));
     }
@@ -313,4 +431,22 @@ pub async fn list_messages(
         .collect();
 
     Ok(Json(MessageListResponse { messages: list }))
+}
+
+pub async fn expire_conversations(pool: &PgPool) {
+    let result = sqlx::query_as::<_, Conversation>(
+        "UPDATE conversations SET status = 'destroyed' WHERE status = 'active' AND expires_at IS NOT NULL AND expires_at < NOW() RETURNING id",
+    )
+    .fetch_all(pool)
+    .await;
+
+    if let Ok(expired) = result {
+        for conv in expired {
+            let _ = sqlx::query("DELETE FROM messages WHERE conversation_id = $1")
+                .bind(conv.id)
+                .execute(pool)
+                .await;
+            tracing::info!(id = %conv.id, "auto-expired conversation");
+        }
+    }
 }

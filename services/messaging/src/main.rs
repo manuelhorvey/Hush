@@ -3,8 +3,11 @@ mod db;
 mod models;
 mod routes;
 
-use axum::{routing::get, routing::post, Router};
+use std::time::Duration;
+
+use axum::{routing::delete, routing::get, routing::patch, routing::post, Router};
 use config::Config;
+use sqlx::PgPool;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
@@ -17,10 +20,20 @@ async fn main() -> anyhow::Result<()> {
     let addr = config.socket_addr()?;
     let pool = db::connect(&config.database_url).await?;
 
+    spawn_expiration_task(pool.clone());
+
     let app = Router::new()
         .route("/api/v1/users/search", get(routes::search_users))
         .route("/api/v1/conversations", post(routes::create_conversation))
         .route("/api/v1/conversations", get(routes::list_conversations))
+        .route(
+            "/api/v1/conversations/:id/complete",
+            patch(routes::complete_conversation),
+        )
+        .route(
+            "/api/v1/conversations/:id",
+            delete(routes::destroy_conversation),
+        )
         .route(
             "/api/v1/conversations/:id/messages",
             post(routes::send_message),
@@ -40,6 +53,16 @@ async fn main() -> anyhow::Result<()> {
         .await?;
 
     Ok(())
+}
+
+fn spawn_expiration_task(pool: PgPool) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(Duration::from_secs(30));
+        loop {
+            interval.tick().await;
+            routes::expire_conversations(&pool).await;
+        }
+    });
 }
 
 fn init_tracing() {
