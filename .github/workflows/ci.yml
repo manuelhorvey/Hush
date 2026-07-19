@@ -18,6 +18,18 @@ jobs:
       - name: Validate Docker Compose
         run: docker compose config
 
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust format
+        run: cargo fmt --all -- --check
+
+      - name: Rust check
+        run: cargo check --workspace --all-targets
+
+      - name: Rust tests
+        run: cargo test --workspace
+
       - name: Verify Phase 0 docs
         run: |
           test -f README.md

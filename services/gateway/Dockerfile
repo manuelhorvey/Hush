@@ -1,0 +1,21 @@
+FROM rust:1.80-alpine AS builder
+
+WORKDIR /app
+
+COPY Cargo.toml ./
+COPY services/gateway/Cargo.toml services/gateway/Cargo.toml
+COPY services/gateway/src services/gateway/src
+
+RUN cargo build --release -p hush-gateway
+
+FROM alpine:3.20 AS runtime
+
+RUN adduser -D -u 10001 hush
+
+WORKDIR /app
+COPY --from=builder /app/target/release/hush-gateway /usr/local/bin/hush-gateway
+
+USER hush
+EXPOSE 8080
+
+CMD ["hush-gateway"]

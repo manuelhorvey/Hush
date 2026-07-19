@@ -1,4 +1,26 @@
 services:
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    environment:
+      APP_ENV: local
+      GATEWAY_HOST: 0.0.0.0
+      GATEWAY_PORT: 8080
+      RUST_LOG: info,hush_gateway=debug,tower_http=debug
+      DATABASE_URL: postgres://hush:hush_local_password@postgres:5432/hush
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      nats:
+        condition: service_started
+
   postgres:
     image: postgres:16-alpine
     environment:

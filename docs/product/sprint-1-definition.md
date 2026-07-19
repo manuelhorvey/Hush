@@ -10,12 +10,12 @@ Create the foundation of Hush and launch the first working mobile shell.
 
 ## Backend Tasks
 
-1. Create Rust workspace.
-2. Create `services/gateway`.
-3. Create Axum API server.
-4. Add health endpoint.
-5. Add configuration system.
-6. Add structured logging.
+1. Create Rust workspace. Done.
+2. Create `services/gateway`. Done.
+3. Create Axum API server. Done.
+4. Add health endpoint. Done.
+5. Add configuration system. Done.
+6. Add structured logging. Done.
 
 Health endpoint:
 

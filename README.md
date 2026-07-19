@@ -58,6 +58,7 @@ Hush/
 - Architecture and implementation plans: `docs/architecture/`
 - Security, privacy, and threat model: `docs/security/`
 - Architecture and stack decisions: `docs/decisions/`
+- Current handoff/status: `docs/project-status.md`
 
 ## Sprint 1 Target
 
@@ -68,6 +69,20 @@ Sprint 1 should create the first runnable foundation:
 - Flutter mobile shell with splash, welcome, and empty home screens.
 - Docker Compose with PostgreSQL, Redis, and backend service.
 - Development instructions and baseline security rules.
+
+## Current Backend Target
+
+Run the local stack:
+
+```text
+docker compose up
+```
+
+Then check:
+
+```text
+GET http://localhost:8080/health
+```
 
 The first commit after project initialization should be:
 

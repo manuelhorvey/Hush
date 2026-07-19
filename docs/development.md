@@ -12,13 +12,27 @@ Copy `.env.example` to `.env` when local development begins and adjust values as
 
 ## Infrastructure
 
-Start local dependencies from the Docker folder:
+Start the local stack:
 
 ```text
 docker compose up
 ```
 
 The same baseline Compose file is mirrored at `infrastructure/docker/docker-compose.yml` for infrastructure-specific organization.
+
+The gateway should expose:
+
+```text
+GET http://localhost:8080/health
+```
+
+Expected response:
+
+```json
+{
+  "status": "ok"
+}
+```
 
 ## Toolchains
 
@@ -28,4 +42,8 @@ Install:
 - Flutter stable
 - Docker
 
-Specific pinned versions should be added when implementation begins.
+Current backend workspace settings:
+
+- Rust edition: 2021
+- Minimum Rust version: 1.80
+- Gateway framework: Axum
