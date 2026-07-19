@@ -3,14 +3,9 @@ FROM rust:1.80-alpine AS builder
 WORKDIR /app
 
 COPY Cargo.toml ./
-COPY services/auth/Cargo.toml services/auth/Cargo.toml
-COPY services/gateway/Cargo.toml services/gateway/Cargo.toml
-COPY services/identity/Cargo.toml services/identity/Cargo.toml
-COPY services/messaging/Cargo.toml services/messaging/Cargo.toml
-COPY services/auth/migrations services/auth/migrations
-COPY services/auth/src services/auth/src
+COPY services/ ./services/
 
-RUN cargo build --release -p hush-auth
+RUN cargo build --release
 
 FROM alpine:3.20 AS runtime
 

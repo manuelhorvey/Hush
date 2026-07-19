@@ -13,6 +13,9 @@ pub async fn connect(database_url: &str) -> anyhow::Result<PgPool> {
     sqlx::query(include_str!("../migrations/002_create_challenges.sql"))
         .execute(&pool)
         .await?;
+    sqlx::query(include_str!("../migrations/003_create_exchange_keys.sql"))
+        .execute(&pool)
+        .await?;
 
     Ok(pool)
 }

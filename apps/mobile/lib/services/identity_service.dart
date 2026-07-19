@@ -66,4 +66,20 @@ class IdentityService {
     );
     return data['verified'] as bool;
   }
+
+  Future<void> storeExchangeKey(String token, String x25519PublicKey) async {
+    await _api.post(
+      '/api/v1/identity/keys/exchange',
+      {'x25519_public_key': x25519PublicKey},
+      token: token,
+    );
+  }
+
+  Future<String> getExchangeKey(String token, String userId) async {
+    final data = await _api.get(
+      '/api/v1/identity/keys/exchange/$userId',
+      token: token,
+    );
+    return data['x25519_public_key'] as String;
+  }
 }

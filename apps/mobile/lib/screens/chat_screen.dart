@@ -1,8 +1,11 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
+import '../services/crypto_service.dart';
+import '../services/identity_service.dart';
 import '../services/messaging_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -27,12 +30,19 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messaging = MessagingService(
     api: ApiClient(baseUrl: 'http://$apiHost:8083'),
   );
+  final _identity = IdentityService(
+    api: ApiClient(baseUrl: 'http://$apiHost:8082'),
+  );
+  final _crypto = CryptoService();
 
   List<MessageInfo> _messages = [];
   String? _token;
   String? _myUserId;
   bool _loading = true;
-  Timer? _pollTimer;
+  bool _connected = false;
+  List<int>? _sharedSecret;
+  WebSocket? _ws;
+  Timer? _reconnectTimer;
 
   @override
   void initState() {
@@ -42,7 +52,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
+    _reconnectTimer?.cancel();
+    _ws?.close();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -58,14 +69,71 @@ class _ChatScreenState extends State<ChatScreen> {
         _token = session.token;
         _myUserId = session.userId;
       });
-      _loadMessages();
-      _startPolling();
+      await _setupKey();
+      await _loadMessages();
+      _connectWs(session.token);
     }
   }
 
-  void _startPolling() {
-    _pollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      _loadMessages();
+  Future<void> _setupKey() async {
+    if (_token == null) return;
+    try {
+      final otherKey =
+          await _identity.getExchangeKey(_token!, widget.otherUserId);
+      final secret = await _crypto.deriveSharedSecret(otherKey);
+      if (mounted) setState(() => _sharedSecret = secret);
+    } catch (_) {
+      // Key not available yet
+    }
+  }
+
+  void _connectWs(String token) {
+    final wsUrl = 'ws://$apiHost:8080/ws?token=$token';
+
+    WebSocket.connect(wsUrl).then((ws) {
+      _ws = ws;
+      if (mounted) setState(() => _connected = true);
+      ws.listen(
+        (data) {
+          try {
+            final msg = jsonDecode(data as String) as Map<String, dynamic>;
+            final message = MessageInfo(
+              id: msg['id'] as String,
+              senderId: msg['sender_id'] as String,
+              ciphertext: msg['ciphertext'] as String,
+              createdAt: msg['created_at'] as String,
+            );
+            if (mounted) {
+              setState(() => _messages.add(message));
+              _scrollToBottom();
+            }
+          } catch (_) {}
+        },
+        onDone: () {
+          if (mounted) {
+            setState(() => _connected = false);
+            _scheduleReconnect(token);
+          }
+        },
+        onError: (_) {
+          if (mounted) {
+            setState(() => _connected = false);
+            _scheduleReconnect(token);
+          }
+        },
+      );
+    }).catchError((_) {
+      if (mounted) {
+        setState(() => _connected = false);
+        _scheduleReconnect(token);
+      }
+    });
+  }
+
+  void _scheduleReconnect(String token) {
+    _reconnectTimer?.cancel();
+    _reconnectTimer = Timer(const Duration(seconds: 5), () {
+      _connectWs(token);
     });
   }
 
@@ -100,13 +168,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _token == null) return;
+    if (text.isEmpty || _token == null || _sharedSecret == null) return;
 
     _messageController.clear();
 
-    final ciphertext = base64Encode(utf8.encode(text));
-
     try {
+      final ciphertext =
+          await _crypto.encryptWithSharedKey(text, _sharedSecret!);
       await _messaging.sendMessage(_token!, widget.conversationId, ciphertext);
       await _loadMessages();
     } catch (e) {
@@ -117,9 +185,10 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
-  String _decrypt(String ciphertext) {
+  Future<String> _decrypt(String ciphertext) async {
+    if (_sharedSecret == null) return '[encrypted]';
     try {
-      return utf8.decode(base64Decode(ciphertext));
+      return await _crypto.decryptWithSharedKey(ciphertext, _sharedSecret!);
     } catch (_) {
       return '[encrypted]';
     }
@@ -131,6 +200,29 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: Text(widget.otherUsername),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _connected ? Icons.wifi : Icons.wifi_off,
+                  size: 18,
+                  color: _connected ? Colors.green : Colors.grey,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  _connected ? 'Connected' : 'Offline',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _connected ? Colors.green : Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -147,38 +239,43 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (context, i) {
                           final msg = _messages[i];
                           final isMe = msg.senderId == _myUserId;
-                          return Align(
-                            alignment: isMe
-                                ? Alignment.centerRight
-                                : Alignment.centerLeft,
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(vertical: 4),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 10),
-                              constraints:
-                                  BoxConstraints(maxWidth: 280),
-                              decoration: BoxDecoration(
-                                color: isMe
-                                    ? Theme.of(context)
-                                        .colorScheme
-                                        .primaryContainer
-                                    : Theme.of(context)
-                                        .colorScheme
-                                        .surfaceContainerHighest,
-                                borderRadius: BorderRadius.only(
-                                  topLeft: const Radius.circular(16),
-                                  topRight: const Radius.circular(16),
-                                  bottomLeft: Radius.circular(
-                                      isMe ? 16 : 4),
-                                  bottomRight: Radius.circular(
-                                      isMe ? 4 : 16),
+                          return FutureBuilder<String>(
+                            future: _decrypt(msg.ciphertext),
+                            builder: (context, snapshot) {
+                              final text = snapshot.data ?? '[encrypted]';
+                              return Align(
+                                alignment: isMe
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                child: Container(
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 16, vertical: 10),
+                                  constraints: BoxConstraints(maxWidth: 280),
+                                  decoration: BoxDecoration(
+                                    color: isMe
+                                        ? Theme.of(context)
+                                            .colorScheme
+                                            .primaryContainer
+                                        : Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest,
+                                    borderRadius: BorderRadius.only(
+                                      topLeft: const Radius.circular(16),
+                                      topRight: const Radius.circular(16),
+                                      bottomLeft: Radius.circular(isMe ? 16 : 4),
+                                      bottomRight:
+                                          Radius.circular(isMe ? 4 : 16),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    text,
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                _decrypt(msg.ciphertext),
-                                style: const TextStyle(fontSize: 16),
-                              ),
-                            ),
+                              );
+                            },
                           );
                         },
                       ),

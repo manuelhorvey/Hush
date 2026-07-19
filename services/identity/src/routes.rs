@@ -262,3 +262,68 @@ pub async fn verify_challenge(
 
     Ok(Json(VerifyResponse { verified }))
 }
+
+pub async fn store_exchange_key(
+    State(pool): State<PgPool>,
+    headers: HeaderMap,
+    Json(body): Json<StoreExchangeKeyRequest>,
+) -> Result<Json<ExchangeKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
+    let user_id = authenticate(&pool, &headers).await?;
+    let now = chrono::Utc::now();
+
+    sqlx::query(
+        "INSERT INTO exchange_keys (user_id, x25519_public_key, created_at) VALUES ($1, $2, $3) ON CONFLICT (user_id) DO UPDATE SET x25519_public_key = $2, created_at = $3",
+    )
+    .bind(user_id)
+    .bind(&body.x25519_public_key)
+    .bind(now)
+    .execute(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse { error: "store exchange key failed".into() }),
+        )
+    })?;
+
+    Ok(Json(ExchangeKeyResponse {
+        user_id,
+        x25519_public_key: body.x25519_public_key,
+    }))
+}
+
+pub async fn get_exchange_key(
+    State(pool): State<PgPool>,
+    headers: HeaderMap,
+    axum::extract::Path(target_user_id): axum::extract::Path<Uuid>,
+) -> Result<Json<ExchangeKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
+    authenticate(&pool, &headers).await?;
+
+    let key = sqlx::query_as::<_, ExchangeKey>(
+        "SELECT user_id, x25519_public_key FROM exchange_keys WHERE user_id = $1",
+    )
+    .bind(target_user_id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: "exchange key lookup failed".into(),
+            }),
+        )
+    })?
+    .ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse {
+                error: "exchange key not found".into(),
+            }),
+        )
+    })?;
+
+    Ok(Json(ExchangeKeyResponse {
+        user_id: key.user_id,
+        x25519_public_key: key.x25519_public_key,
+    }))
+}

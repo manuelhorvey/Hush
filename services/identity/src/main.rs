@@ -22,6 +22,14 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/identity/devices", get(routes::list_devices))
         .route("/api/v1/identity/challenge", post(routes::create_challenge))
         .route("/api/v1/identity/verify", post(routes::verify_challenge))
+        .route(
+            "/api/v1/identity/keys/exchange",
+            post(routes::store_exchange_key),
+        )
+        .route(
+            "/api/v1/identity/keys/exchange/:user_id",
+            get(routes::get_exchange_key),
+        )
         .layer(TraceLayer::new_for_http())
         .with_state(pool);
 

@@ -52,6 +52,9 @@ class _CreateIdentityScreenState extends State<CreateIdentityScreen> {
         publicKey,
       );
 
+      final x25519PubKey = await _crypto.getX25519PublicKeyBase64();
+      await _identityService.storeExchangeKey(session.token, x25519PubKey);
+
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => const HomeScreen()),

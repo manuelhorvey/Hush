@@ -4,42 +4,42 @@ Last updated: 2026-07-19
 
 ## Current Phase
 
-Sprint 4 is active. See `docs/product/sprint-4-definition.md`.
-
-Latest pushed commit: `bea456b feat: add identity service and key generation`
+Sprint 5 is active. See `docs/product/sprint-5-definition.md`.
 
 ## What Is Done
 
 - Phase 0 foundation docs and repository scaffolding.
-- Rust workspace with Axum gateway (`GET /health`), Dockerfiles, CI.
-- Auth service at `services/auth` (register, login, session validation).
-- Identity service at `services/identity` (device registration/challenge/verify with Ed25519).
-- Flutter app with Splash, Welcome, Create Identity, Login, Home, Devices screens.
-- Ed25519 key generation via `cryptography` package.
+- Rust workspace with Axum gateway, Dockerfiles, CI.
+- Auth service (register, login, session validation).
+- Identity service (device registration/challenge/verify, exchange keys).
+- Messaging service (conversations, messages, user search).
+- Flutter app with Splash, Welcome, Create Identity, Login, Home, Devices, New Conversation, Chat screens.
+- Ed25519 key generation + X25519 key exchange via `cryptography` package.
 - Session persistence with `flutter_secure_storage`.
-- CI: Rust format/check/test + Flutter analyze/test.
 
-### Sprint 4 (this commit)
+### Sprint 5 (this commit)
 
-- Messaging service at `services/messaging`:
-  - `POST /api/v1/conversations` — create a conversation between two users.
-  - `GET /api/v1/conversations` — list authenticated user's conversations.
-  - `POST /api/v1/conversations/{id}/messages` — send an encrypted message.
-  - `GET /api/v1/conversations/{id}/messages` — fetch messages.
-  - `GET /api/v1/users/search?q=` — find users by username.
-  - Database migrations for `conversations` and `messages` tables.
-  - Dockerfile and `compose.yaml` service definition.
-- Flutter screens:
-  - **New Conversation** screen with username search.
-  - **Chat** screen with message bubbles, compose bar, and polling.
-  - **Home** screen now lists conversations with a FAB to start new ones.
-  - Messages encrypted (base64 placeholder) client-side before sending.
+- **X25519 E2EE:**
+  - X25519 keypair generated during registration, stored in `flutter_secure_storage`.
+  - Public key uploaded via `POST /api/v1/identity/keys/exchange`.
+  - X25519 key agreement derives a shared secret for each conversation.
+  - AES-GCM-256 encrypts message plaintext before sending; decrypts on receive.
+- **WebSocket real-time delivery:**
+  - Gateway `GET /ws?token=` upgrades to WebSocket with session validation.
+  - In-memory connection registry maps `userId -> Sender`s.
+  - Messaging service calls `POST /_internal/push` after storing a message.
+  - Gateway forwards push to the recipient's WebSocket connection.
+  - Chat screen shows Connected/Offline indicator.
+  - Automatic reconnection on disconnect.
+- **New identity endpoints:**
+  - `POST /api/v1/identity/keys/exchange` — store X25519 public key (upsert).
+  - `GET /api/v1/identity/keys/exchange/:user_id` — fetch another user's X25519 public key.
+- **Dockerfile fix:** All services copy entire `services/` directory for workspace resolution.
 
 ## What Is In Progress
 
 (none)
 
-## Next Product Work After Sprint 4
+## Next Product Work After Sprint 5
 
-Add real E2EE using X25519 key exchange, WebSocket for real-time delivery, and
-message sync across devices.
+Message sync across devices, conversation lifecycle events, group messaging.

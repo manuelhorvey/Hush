@@ -9,6 +9,10 @@ use uuid::Uuid;
 
 use crate::models::*;
 
+fn gateway_push_url() -> String {
+    std::env::var("GATEWAY_INTERNAL_URL").unwrap_or_else(|_| "http://gateway:8080".to_owned())
+}
+
 #[derive(Deserialize)]
 pub struct SearchQuery {
     pub q: String,
@@ -163,24 +167,31 @@ pub async fn send_message(
 ) -> Result<Json<MessageResponse>, (StatusCode, Json<ErrorResponse>)> {
     let user_id = authenticate(&pool, &headers).await?;
 
-    let is_participant = sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(*) FROM conversations WHERE id = $1 AND (creator_id = $2 OR participant_id = $2)",
+    let conversation = sqlx::query_as::<_, Conversation>(
+        "SELECT id, creator_id, participant_id, created_at FROM conversations WHERE id = $1 AND (creator_id = $2 OR participant_id = $2)",
     )
     .bind(conversation_id)
     .bind(user_id)
-    .fetch_one(&pool)
+    .fetch_optional(&pool)
     .await
-    .unwrap_or(0)
-        > 0;
-
-    if !is_participant {
-        return Err((
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse { error: "conversation lookup failed".into() }),
+        )
+    })?
+    .ok_or_else(|| {
+        (
             StatusCode::FORBIDDEN,
-            Json(ErrorResponse {
-                error: "not a participant in this conversation".into(),
-            }),
-        ));
-    }
+            Json(ErrorResponse { error: "not a participant in this conversation".into() }),
+        )
+    })?;
+
+    let recipient_id = if conversation.creator_id == user_id {
+        conversation.participant_id
+    } else {
+        conversation.creator_id
+    };
 
     let message_id = Uuid::new_v4();
     let now = chrono::Utc::now();
@@ -202,12 +213,29 @@ pub async fn send_message(
         )
     })?;
 
-    Ok(Json(MessageResponse {
+    let response = MessageResponse {
         id: message_id,
         sender_id: user_id,
-        ciphertext: body.ciphertext,
+        ciphertext: body.ciphertext.clone(),
         created_at: now,
-    }))
+    };
+
+    let push_payload = serde_json::json!({
+        "user_id": recipient_id,
+        "payload": serde_json::to_string(&response).unwrap_or_default(),
+    });
+
+    let gateway_url = gateway_push_url();
+    tokio::spawn(async move {
+        let client = reqwest::Client::new();
+        let _ = client
+            .post(format!("{}/_internal/push", gateway_url))
+            .json(&push_payload)
+            .send()
+            .await;
+    });
+
+    Ok(Json(response))
 }
 
 pub async fn search_users(

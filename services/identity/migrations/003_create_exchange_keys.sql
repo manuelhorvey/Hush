@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS exchange_keys (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    x25519_public_key TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

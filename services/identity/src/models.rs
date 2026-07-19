@@ -68,3 +68,20 @@ pub struct VerifyResponse {
 pub struct ErrorResponse {
     pub error: String,
 }
+
+#[derive(Debug, sqlx::FromRow)]
+pub struct ExchangeKey {
+    pub user_id: Uuid,
+    pub x25519_public_key: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct StoreExchangeKeyRequest {
+    pub x25519_public_key: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ExchangeKeyResponse {
+    pub user_id: Uuid,
+    pub x25519_public_key: String,
+}
