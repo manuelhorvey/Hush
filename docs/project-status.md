@@ -4,39 +4,44 @@ Last updated: 2026-07-19
 
 ## Current Phase
 
-Sprint 1 is active.
+Sprint 2 is active. See `docs/product/sprint-2-definition.md`.
 
 Latest pushed commit:
 
 ```text
-1a2337b feat: add gateway service foundation
+563b1c6 feat: add mobile shell foundation
 ```
 
 ## What Is Done
 
-- Phase 0 foundation docs and repository scaffolding committed and pushed.
-- Rust workspace at `Cargo.toml` with Axum gateway crate at `services/gateway`.
-- `GET /health` endpoint returning `{"status": "ok"}`.
-- Environment-based gateway config (`GATEWAY_HOST`, `GATEWAY_PORT`).
-- Structured tracing setup.
-- Gateway Dockerfile wired into root `compose.yaml`.
-- CI updated to run Rust format, check, and tests (passing).
-- Flutter mobile shell created at `apps/mobile` with:
-  - Splash screen with Hush branding, auto-navigates after 2s.
-  - Welcome screen with "Get Started" button.
-  - Empty home screen as shell for future content.
-  - Material 3 theme, basic navigation structure.
-- CI updated to run Flutter analyze and test.
+- Phase 0 foundation docs and repository scaffolding.
+- Rust workspace with Axum gateway crate at `services/gateway` (`GET /health`).
+- Environment-based config, structured tracing, Dockerfile, CI (fmt/check/test).
+- Flutter mobile shell with splash, welcome, and empty home screens.
+- Flutter CI (analyze/test) in GitHub Actions.
+- Auth service at `services/auth`:
+  - `POST /api/v1/auth/register` — creates user + returns session token.
+  - `POST /api/v1/auth/login` — returns session token for existing user.
+  - `GET /api/v1/auth/session` — validates token, returns user info.
+  - PostgreSQL-backed `users` and `sessions` tables.
+  - Dockerfile and `compose.yaml` service definition.
+- Flutter app updated with:
+  - Create Identity screen (username input, calls register).
+  - Login screen (username input, calls login).
+  - Session persistence via `flutter_secure_storage`.
+  - Splash screen checks for existing session on startup.
+  - API client module at `lib/services/`.
 
 ## What Is In Progress
 
-The mobile shell is currently uncommitted. Commit it with:
+The Sprint 2 auth service + Flutter identity flow is currently uncommitted.
+Commit it with:
 
 ```text
-feat: add mobile shell foundation
+feat: add auth service and identity flow
 ```
 
-## Next Product Work
+## Next Product Work After Sprint 2
 
-Continue Sprint 1 by implementing core features for the mobile app or backend
-as defined in `docs/product/sprint-1-definition.md`.
+Continue into trust establishment and messaging as defined in the engineering
+roadmap (`docs/architecture/Engineering Execution Roadmap.md`).

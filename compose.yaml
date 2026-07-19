@@ -1,4 +1,21 @@
 services:
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    environment:
+      APP_ENV: local
+      AUTH_HOST: 0.0.0.0
+      AUTH_PORT: 8081
+      RUST_LOG: info,hush_auth=debug
+      DATABASE_URL: postgres://hush:hush_local_password@postgres:5432/hush
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+
   gateway:
     build:
       context: .
