@@ -12,7 +12,7 @@ class DevicesScreen extends StatefulWidget {
 
 class _DevicesScreenState extends State<DevicesScreen> {
   final _identity = IdentityService(
-    api: ApiClient(baseUrl: 'http://10.0.2.2:8082'),
+    api: ApiClient(baseUrl: 'http://$apiHost:8082'),
   );
   List<DeviceInfo>? _devices;
   String? _error;
@@ -26,7 +26,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
   Future<void> _loadDevices() async {
     try {
       final auth = AuthService(
-        api: ApiClient(baseUrl: 'http://10.0.2.2:8081'),
+        api: ApiClient(baseUrl: 'http://$apiHost:8081'),
       );
       final session = await auth.getSession();
       if (session == null) return;

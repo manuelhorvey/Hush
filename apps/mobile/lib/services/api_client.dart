@@ -1,5 +1,11 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+
+String get apiHost {
+  if (defaultTargetPlatform == TargetPlatform.android) return '10.0.2.2';
+  return 'localhost';
+}
 
 class ApiException implements Exception {
   final int statusCode;

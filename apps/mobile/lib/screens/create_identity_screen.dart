@@ -15,10 +15,10 @@ class CreateIdentityScreen extends StatefulWidget {
 class _CreateIdentityScreenState extends State<CreateIdentityScreen> {
   final _usernameController = TextEditingController();
   final _authService = AuthService(
-    api: ApiClient(baseUrl: 'http://10.0.2.2:8081'),
+    api: ApiClient(baseUrl: 'http://$apiHost:8081'),
   );
   final _identityService = IdentityService(
-    api: ApiClient(baseUrl: 'http://10.0.2.2:8082'),
+    api: ApiClient(baseUrl: 'http://$apiHost:8082'),
   );
   final _crypto = CryptoService();
   String? _error;

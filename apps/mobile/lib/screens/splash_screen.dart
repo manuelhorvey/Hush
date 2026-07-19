@@ -22,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
     await Future.delayed(const Duration(seconds: 2));
 
     final auth = AuthService(
-      api: ApiClient(baseUrl: 'http://10.0.2.2:8081'),
+      api: ApiClient(baseUrl: 'http://$apiHost:8081'),
     );
     final session = await auth.getSession();
 

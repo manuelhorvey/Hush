@@ -28,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     final auth = AuthService(
-      api: ApiClient(baseUrl: 'http://10.0.2.2:8081'),
+      api: ApiClient(baseUrl: 'http://$apiHost:8081'),
     );
     final session = await auth.getSession();
     if (session != null && mounted) {
@@ -42,7 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadConversations(String token) async {
     final messaging = MessagingService(
-      api: ApiClient(baseUrl: 'http://10.0.2.2:8083'),
+      api: ApiClient(baseUrl: 'http://$apiHost:8083'),
     );
     try {
       final convs = await messaging.listConversations(token);
@@ -56,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _logout() async {
     final auth = AuthService(
-      api: ApiClient(baseUrl: 'http://10.0.2.2:8081'),
+      api: ApiClient(baseUrl: 'http://$apiHost:8081'),
     );
     await auth.clearSession();
     if (!mounted) return;

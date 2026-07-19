@@ -13,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _authService = AuthService(
-    api: ApiClient(baseUrl: 'http://10.0.2.2:8081'),
+    api: ApiClient(baseUrl: 'http://$apiHost:8081'),
   );
   String? _error;
   bool _loading = false;

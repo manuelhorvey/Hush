@@ -15,7 +15,7 @@ class NewConversationScreen extends StatefulWidget {
 class _NewConversationScreenState extends State<NewConversationScreen> {
   final _searchController = TextEditingController();
   final _messaging = MessagingService(
-    api: ApiClient(baseUrl: 'http://10.0.2.2:8083'),
+    api: ApiClient(baseUrl: 'http://$apiHost:8083'),
   );
 
   List<UserInfo> _results = [];
@@ -38,7 +38,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
 
   Future<void> _loadToken() async {
     final auth = AuthService(
-      api: ApiClient(baseUrl: 'http://10.0.2.2:8081'),
+      api: ApiClient(baseUrl: 'http://$apiHost:8081'),
     );
     final session = await auth.getSession();
     if (mounted) setState(() => _token = session?.token);

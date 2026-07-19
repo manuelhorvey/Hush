@@ -25,7 +25,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   final _messaging = MessagingService(
-    api: ApiClient(baseUrl: 'http://10.0.2.2:8083'),
+    api: ApiClient(baseUrl: 'http://$apiHost:8083'),
   );
 
   List<MessageInfo> _messages = [];
@@ -50,7 +50,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _loadSession() async {
     final auth = AuthService(
-      api: ApiClient(baseUrl: 'http://10.0.2.2:8081'),
+      api: ApiClient(baseUrl: 'http://$apiHost:8081'),
     );
     final session = await auth.getSession();
     if (session != null && mounted) {
