@@ -10,14 +10,12 @@ import '../services/messaging_service.dart';
 
 class ChatScreen extends StatefulWidget {
   final String conversationId;
-  final String otherUsername;
-  final String otherUserId;
+  final List<ParticipantInfo> participants;
 
   const ChatScreen({
     super.key,
     required this.conversationId,
-    required this.otherUsername,
-    required this.otherUserId,
+    required this.participants,
   });
 
   @override
@@ -42,7 +40,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _connected = false;
   bool _isActive = true;
   String _status = 'active';
-  List<int>? _sharedSecret;
+  List<int>? _groupKey;
   WebSocket? _ws;
   Timer? _reconnectTimer;
 
@@ -61,6 +59,16 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  String get _chatTitle {
+    final others = widget.participants
+        .where((p) => p.userId != _myUserId)
+        .map((p) => p.username)
+        .toList();
+    if (others.isEmpty) return 'Chat';
+    if (others.length == 1) return others.first;
+    return '${others.first} +${others.length - 1}';
+  }
+
   Future<void> _loadSession() async {
     final auth = AuthService(
       api: ApiClient(baseUrl: 'http://$apiHost:8081'),
@@ -71,19 +79,29 @@ class _ChatScreenState extends State<ChatScreen> {
         _token = session.token;
         _myUserId = session.userId;
       });
-      await _setupKey();
+      await _loadGroupKey();
       await _loadMessages();
       _connectWs(session.token);
     }
   }
 
-  Future<void> _setupKey() async {
+  Future<void> _loadGroupKey() async {
     if (_token == null) return;
     try {
-      final otherKey =
-          await _identity.getExchangeKey(_token!, widget.otherUserId);
-      final secret = await _crypto.deriveSharedSecret(otherKey);
-      if (mounted) setState(() => _sharedSecret = secret);
+      final encryptedKey =
+          await _messaging.getGroupKey(_token!, widget.conversationId);
+
+      final creatorId = widget.participants
+          .where((p) => p.userId != _myUserId)
+          .firstOrNull
+          ?.userId;
+      if (creatorId == null) return;
+
+      final creatorPubKey =
+          await _identity.getExchangeKey(_token!, creatorId);
+      final groupKey =
+          await _crypto.decryptGroupKey(encryptedKey, creatorPubKey);
+      if (mounted) setState(() => _groupKey = groupKey);
     } catch (_) {}
   }
 
@@ -168,13 +186,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _token == null || _sharedSecret == null) return;
+    if (text.isEmpty || _token == null || _groupKey == null) return;
 
     _messageController.clear();
 
     try {
+      final sharedSecret = _groupKey!;
       final ciphertext =
-          await _crypto.encryptWithSharedKey(text, _sharedSecret!);
+          await _crypto.encryptWithSharedKey(text, sharedSecret);
       await _messaging.sendMessage(_token!, widget.conversationId, ciphertext);
       await _loadMessages();
     } catch (e) {
@@ -186,9 +205,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<String> _decrypt(String ciphertext) async {
-    if (_sharedSecret == null) return '[encrypted]';
+    if (_groupKey == null) return '[encrypted]';
     try {
-      return await _crypto.decryptWithSharedKey(ciphertext, _sharedSecret!);
+      return await _crypto.decryptWithSharedKey(ciphertext, _groupKey!);
     } catch (_) {
       return '[encrypted]';
     }
@@ -255,7 +274,7 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(widget.otherUsername),
+            Flexible(child: Text(_chatTitle, overflow: TextOverflow.ellipsis)),
             const SizedBox(width: 8),
             _statusIcon(),
           ],
@@ -271,8 +290,19 @@ class _ChatScreenState extends State<ChatScreen> {
           PopupMenuButton<String>(
             onSelected: (value) {
               if (value == 'destroy') _destroyConversation();
+              if (value == 'participants') _showParticipants();
             },
             itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'participants',
+                child: Row(
+                  children: [
+                    Icon(Icons.people, size: 20),
+                    SizedBox(width: 8),
+                    Text('Participants'),
+                  ],
+                ),
+              ),
               const PopupMenuItem(
                   value: 'destroy',
                   child: Row(
@@ -309,41 +339,67 @@ class _ChatScreenState extends State<ChatScreen> {
                         itemBuilder: (context, i) {
                           final msg = _messages[i];
                           final isMe = msg.senderId == _myUserId;
+                          final sender = widget.participants
+                              .where((p) => p.userId == msg.senderId)
+                              .firstOrNull;
                           return FutureBuilder<String>(
                             future: _decrypt(msg.ciphertext),
                             builder: (context, snapshot) {
                               final text = snapshot.data ?? '[encrypted]';
-                              return Align(
-                                alignment: isMe
-                                    ? Alignment.centerRight
-                                    : Alignment.centerLeft,
-                                child: Container(
-                                  margin:
-                                      const EdgeInsets.symmetric(vertical: 4),
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 16, vertical: 10),
-                                  constraints: BoxConstraints(maxWidth: 280),
-                                  decoration: BoxDecoration(
-                                    color: isMe
-                                        ? Theme.of(context)
-                                            .colorScheme
-                                            .primaryContainer
-                                        : Theme.of(context)
-                                            .colorScheme
-                                            .surfaceContainerHighest,
-                                    borderRadius: BorderRadius.only(
-                                      topLeft: const Radius.circular(16),
-                                      topRight: const Radius.circular(16),
-                                      bottomLeft: Radius.circular(isMe ? 16 : 4),
-                                      bottomRight:
-                                          Radius.circular(isMe ? 4 : 16),
+                              return Column(
+                                crossAxisAlignment: isMe
+                                    ? CrossAxisAlignment.end
+                                    : CrossAxisAlignment.start,
+                                children: [
+                                  if (!isMe && sender != null)
+                                    Padding(
+                                      padding: const EdgeInsets.only(
+                                          left: 12, bottom: 2),
+                                      child: Text(
+                                        sender.username,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                        ),
+                                      ),
+                                    ),
+                                  Align(
+                                    alignment: isMe
+                                        ? Alignment.centerRight
+                                        : Alignment.centerLeft,
+                                    child: Container(
+                                      margin: const EdgeInsets.symmetric(
+                                          vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 10),
+                                      constraints:
+                                          BoxConstraints(maxWidth: 280),
+                                      decoration: BoxDecoration(
+                                        color: isMe
+                                            ? Theme.of(context)
+                                                .colorScheme
+                                                .primaryContainer
+                                            : Theme.of(context)
+                                                .colorScheme
+                                                .surfaceContainerHighest,
+                                        borderRadius: BorderRadius.only(
+                                          topLeft: const Radius.circular(16),
+                                          topRight: const Radius.circular(16),
+                                          bottomLeft: Radius.circular(
+                                              isMe ? 16 : 4),
+                                          bottomRight: Radius.circular(
+                                              isMe ? 4 : 16),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        text,
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
                                     ),
                                   ),
-                                  child: Text(
-                                    text,
-                                    style: const TextStyle(fontSize: 16),
-                                  ),
-                                ),
+                                ],
                               );
                             },
                           );
@@ -393,6 +449,35 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showParticipants() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Participants'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: widget.participants
+              .map((p) => ListTile(
+                    leading: CircleAvatar(
+                        child: Text(p.username[0].toUpperCase())),
+                    title: Text(p.username),
+                    subtitle: p.userId == _myUserId
+                        ? const Text('You')
+                        : null,
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ))
+              .toList(),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Close')),
         ],
       ),
     );

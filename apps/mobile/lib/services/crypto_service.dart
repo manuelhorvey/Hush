@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:cryptography/cryptography.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
@@ -145,6 +146,25 @@ class CryptoService {
     );
 
     return utf8.decode(plaintext);
+  }
+
+  List<int> generateGroupKey() {
+    final rng = Random.secure();
+    return List<int>.generate(32, (_) => rng.nextInt(256));
+  }
+
+  Future<String> encryptGroupKey(
+      List<int> groupKey, String otherPublicKeyBase64) async {
+    final sharedSecret = await deriveSharedSecret(otherPublicKeyBase64);
+    return await encryptWithSharedKey(
+        base64Encode(groupKey), sharedSecret);
+  }
+
+  Future<List<int>> decryptGroupKey(
+      String encryptedGroupKey, String otherPublicKeyBase64) async {
+    final sharedSecret = await deriveSharedSecret(otherPublicKeyBase64);
+    final decoded = await decryptWithSharedKey(encryptedGroupKey, sharedSecret);
+    return base64Decode(decoded);
   }
 
   String bytesToHex(List<int> bytes) {

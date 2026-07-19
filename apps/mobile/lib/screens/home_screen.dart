@@ -16,6 +16,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String? _username;
+  String? _myUserId;
   String? _token;
   List<ConversationInfo> _conversations = [];
   bool _loading = true;
@@ -34,10 +35,21 @@ class _HomeScreenState extends State<HomeScreen> {
     if (session != null && mounted) {
       setState(() {
         _username = session.username;
+        _myUserId = session.userId;
         _token = session.token;
       });
       _loadConversations(session.token);
     }
+  }
+
+  String _conversationTitle(ConversationInfo conv) {
+    final others = conv.participants
+        .where((p) => p.userId != _myUserId)
+        .map((p) => p.username)
+        .toList();
+    if (others.isEmpty) return 'Chat';
+    if (others.length == 1) return others.first;
+    return '${others.first} +${others.length - 1}';
   }
 
   Future<void> _loadConversations(String token) async {
@@ -70,8 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
       MaterialPageRoute(
         builder: (_) => ChatScreen(
           conversationId: conv.id,
-          otherUsername: 'User ${conv.participantId.substring(0, 8)}',
-          otherUserId: conv.participantId,
+          participants: conv.participants,
         ),
       ),
     );
@@ -142,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                         title: Text(
-                            'User ${conv.participantId.substring(0, 8)}'),
+                            _conversationTitle(conv)),
                         subtitle: Row(
                           children: [
                             Text(conv.createdAt.substring(0, 10)),

@@ -19,5 +19,11 @@ pub async fn connect(database_url: &str) -> anyhow::Result<PgPool> {
     .execute(&pool)
     .await?;
 
+    sqlx::query(include_str!(
+        "../migrations/003_add_group_support.sql"
+    ))
+    .execute(&pool)
+    .await?;
+
     Ok(pool)
 }

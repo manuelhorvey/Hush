@@ -2,25 +2,42 @@
 
 import 'api_client.dart';
 
+class ParticipantInfo {
+  final String userId;
+  final String username;
+
+  ParticipantInfo({required this.userId, required this.username});
+
+  factory ParticipantInfo.fromJson(Map<String, dynamic> json) {
+    return ParticipantInfo(
+      userId: json['user_id'] as String,
+      username: json['username'] as String,
+    );
+  }
+}
+
 class ConversationInfo {
   final String id;
-  final String participantId;
+  final List<ParticipantInfo> participants;
   final String status;
   final String? expiresAt;
   final String createdAt;
 
   ConversationInfo({
     required this.id,
-    required this.participantId,
+    required this.participants,
     required this.status,
     this.expiresAt,
     required this.createdAt,
   });
 
   factory ConversationInfo.fromJson(Map<String, dynamic> json) {
+    final list = (json['participants'] as List<dynamic>)
+        .map((p) => ParticipantInfo.fromJson(p as Map<String, dynamic>))
+        .toList();
     return ConversationInfo(
       id: json['id'] as String,
-      participantId: json['participant_id'] as String,
+      participants: list,
       status: json['status'] as String? ?? 'active',
       expiresAt: json['expires_at'] as String?,
       createdAt: json['created_at'] as String,
@@ -82,10 +99,19 @@ class MessagingService {
   }
 
   Future<ConversationInfo> createConversation(
-      String token, String participantId) async {
+    String token,
+    List<String> participantIds, {
+    Map<String, String>? encryptedKeys,
+  }) async {
+    final body = <String, dynamic>{
+      'participant_ids': participantIds,
+    };
+    if (encryptedKeys != null) {
+      body['encrypted_keys'] = encryptedKeys;
+    }
     final data = await _api.post(
       '/api/v1/conversations',
-      {'participant_id': participantId},
+      body,
       token: token,
     );
     return ConversationInfo.fromJson(data);
@@ -140,5 +166,25 @@ class MessagingService {
       '/api/v1/conversations/$conversationId',
       token: token,
     );
+  }
+
+  Future<String> getGroupKey(String token, String conversationId) async {
+    final data = await _api.get(
+      '/api/v1/conversations/$conversationId/key',
+      token: token,
+    );
+    return data['encrypted_key'] as String;
+  }
+
+  Future<List<ParticipantInfo>> getParticipants(
+      String token, String conversationId) async {
+    final data = await _api.get(
+      '/api/v1/conversations/$conversationId/participants',
+      token: token,
+    );
+    final list = data['participants'] as List<dynamic>;
+    return list
+        .map((p) => ParticipantInfo.fromJson(p as Map<String, dynamic>))
+        .toList();
   }
 }

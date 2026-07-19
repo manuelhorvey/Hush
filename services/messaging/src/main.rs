@@ -42,6 +42,14 @@ async fn main() -> anyhow::Result<()> {
             "/api/v1/conversations/:id/messages",
             get(routes::list_messages),
         )
+        .route(
+            "/api/v1/conversations/:id/key",
+            get(routes::get_conversation_key),
+        )
+        .route(
+            "/api/v1/conversations/:id/participants",
+            get(routes::list_participants),
+        )
         .layer(TraceLayer::new_for_http())
         .with_state(pool);
 
