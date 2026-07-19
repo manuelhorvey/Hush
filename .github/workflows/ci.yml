@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  foundation:
+    name: Foundation checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose
+        run: docker compose config
+
+      - name: Verify Phase 0 docs
+        run: |
+          test -f README.md
+          test -f docs/architecture/system-overview.md
+          test -f docs/architecture/backend-architecture.md
+          test -f docs/architecture/security-model.md
+          test -f docs/architecture/data-flow.md
+          test -f docs/architecture/deployment.md
+          test -f docs/security/security-baseline.md
+          test -f docs/decisions/0001-final-technology-stack.md
+          test -f docs/product/figma-foundation.md
+          test -f docs/product/sprint-1-definition.md

@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: hush
+      POSTGRES_USER: hush
+      POSTGRES_PASSWORD: hush_local_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - hush_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hush -d hush"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  nats:
+    image: nats:2-alpine
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    command: ["-m", "8222"]
+
+volumes:
+  hush_postgres_data:

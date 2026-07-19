@@ -1,0 +1,41 @@
+# System
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# Rust
+/target/
+**/*.rs.bk
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+pubspec.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local infrastructure state
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Temporary files
+tmp/
+temp/
