@@ -4,44 +4,42 @@ Last updated: 2026-07-19
 
 ## Current Phase
 
-Sprint 3 is active. See `docs/product/sprint-3-definition.md`.
+Sprint 4 is active. See `docs/product/sprint-4-definition.md`.
 
-Latest pushed commit:
-
-```text
-9934da7 feat: add auth service and identity flow
-```
+Latest pushed commit: `bea456b feat: add identity service and key generation`
 
 ## What Is Done
 
 - Phase 0 foundation docs and repository scaffolding.
 - Rust workspace with Axum gateway (`GET /health`), Dockerfiles, CI.
 - Auth service at `services/auth` (register, login, session validation).
-- Identity service at `services/identity`:
-  - Device registration (`POST /api/v1/identity/devices`).
-  - Device listing (`GET /api/v1/identity/devices`).
-  - Challenge creation (`POST /api/v1/identity/challenge`).
-  - Challenge verification (`POST /api/v1/identity/verify`) with Ed25519 sig check.
-  - Dockerfile and `compose.yaml` service definition.
-- Flutter app with:
-  - Splash, Welcome, Create Identity, Login, Home screens.
-  - Real Ed25519 keypair generation via `cryptography` package.
-  - Device registration during identity creation.
-  - "My Devices" screen listing registered devices.
-  - `flutter_secure_storage` for keys and session tokens.
-  - Session persistence and auto-login.
+- Identity service at `services/identity` (device registration/challenge/verify with Ed25519).
+- Flutter app with Splash, Welcome, Create Identity, Login, Home, Devices screens.
+- Ed25519 key generation via `cryptography` package.
+- Session persistence with `flutter_secure_storage`.
 - CI: Rust format/check/test + Flutter analyze/test.
+
+### Sprint 4 (this commit)
+
+- Messaging service at `services/messaging`:
+  - `POST /api/v1/conversations` — create a conversation between two users.
+  - `GET /api/v1/conversations` — list authenticated user's conversations.
+  - `POST /api/v1/conversations/{id}/messages` — send an encrypted message.
+  - `GET /api/v1/conversations/{id}/messages` — fetch messages.
+  - `GET /api/v1/users/search?q=` — find users by username.
+  - Database migrations for `conversations` and `messages` tables.
+  - Dockerfile and `compose.yaml` service definition.
+- Flutter screens:
+  - **New Conversation** screen with username search.
+  - **Chat** screen with message bubbles, compose bar, and polling.
+  - **Home** screen now lists conversations with a FAB to start new ones.
+  - Messages encrypted (base64 placeholder) client-side before sending.
 
 ## What Is In Progress
 
-The Sprint 3 identity service + key generation + devices screens is currently
-uncommitted. Commit it with:
+(none)
 
-```text
-feat: add identity service and key generation
-```
+## Next Product Work After Sprint 4
 
-## Next Product Work After Sprint 3
-
-Continue into secure messaging as defined in the engineering roadmap
-(`docs/architecture/Engineering Execution Roadmap.md`).
+Add real E2EE using X25519 key exchange, WebSocket for real-time delivery, and
+message sync across devices.

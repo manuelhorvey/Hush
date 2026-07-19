@@ -32,6 +32,22 @@ services:
       postgres:
         condition: service_healthy
 
+  messaging:
+    build:
+      context: .
+      dockerfile: services/messaging/Dockerfile
+    environment:
+      APP_ENV: local
+      MESSAGING_HOST: 0.0.0.0
+      MESSAGING_PORT: 8083
+      RUST_LOG: info,hush_messaging=debug
+      DATABASE_URL: postgres://hush:hush_local_password@postgres:5432/hush
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   gateway:
     build:
       context: .

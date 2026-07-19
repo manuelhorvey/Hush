@@ -4,6 +4,7 @@ members = [
   "services/gateway",
   "services/auth",
   "services/identity",
+  "services/messaging",
 ]
 
 [workspace.package]
