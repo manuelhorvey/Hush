@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "services/gateway",
   "services/auth",
+  "services/identity",
 ]
 
 [workspace.package]
@@ -23,3 +24,5 @@ uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 rand = "0.8"
 hex = "0.4"
+ed25519-dalek = "2"
+

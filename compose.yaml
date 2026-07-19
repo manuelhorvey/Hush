@@ -16,6 +16,22 @@ services:
         condition: service_healthy
 
 
+  identity:
+    build:
+      context: .
+      dockerfile: services/identity/Dockerfile
+    environment:
+      APP_ENV: local
+      IDENTITY_HOST: 0.0.0.0
+      IDENTITY_PORT: 8082
+      RUST_LOG: info,hush_identity=debug
+      DATABASE_URL: postgres://hush:hush_local_password@postgres:5432/hush
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   gateway:
     build:
       context: .

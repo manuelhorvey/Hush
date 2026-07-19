@@ -1,7 +1,8 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
+import '../services/crypto_service.dart';
+import '../services/identity_service.dart';
 import 'home_screen.dart';
 
 class CreateIdentityScreen extends StatefulWidget {
@@ -16,6 +17,10 @@ class _CreateIdentityScreenState extends State<CreateIdentityScreen> {
   final _authService = AuthService(
     api: ApiClient(baseUrl: 'http://10.0.2.2:8081'),
   );
+  final _identityService = IdentityService(
+    api: ApiClient(baseUrl: 'http://10.0.2.2:8082'),
+  );
+  final _crypto = CryptoService();
   String? _error;
   bool _loading = false;
 
@@ -38,8 +43,14 @@ class _CreateIdentityScreenState extends State<CreateIdentityScreen> {
     });
 
     try {
-      final publicKey = _generatePlaceholderKey();
-      await _authService.register(username, publicKey);
+      final publicKey = await _crypto.getPublicKeyHex();
+      final session = await _authService.register(username, publicKey);
+
+      await _identityService.registerDevice(
+        session.token,
+        'Default Device',
+        publicKey,
+      );
 
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
@@ -56,12 +67,6 @@ class _CreateIdentityScreenState extends State<CreateIdentityScreen> {
         _loading = false;
       });
     }
-  }
-
-  String _generatePlaceholderKey() {
-    final random = Random.secure();
-    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
-    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
   }
 
   @override

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/auth_service.dart';
+import 'devices_screen.dart';
 import 'welcome_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -47,6 +48,15 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text(_username != null ? 'Hush — $_username' : 'Hush'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.devices),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DevicesScreen()),
+              );
+            },
+            tooltip: 'My Devices',
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: _logout,
