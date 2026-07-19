@@ -4,6 +4,9 @@ WORKDIR /app
 
 COPY Cargo.toml ./
 COPY services/identity/Cargo.toml services/identity/Cargo.toml
+COPY services/auth/Cargo.toml services/auth/Cargo.toml
+COPY services/gateway/Cargo.toml services/gateway/Cargo.toml
+COPY services/messaging/Cargo.toml services/messaging/Cargo.toml
 COPY services/identity/migrations services/identity/migrations
 COPY services/identity/src services/identity/src
 
