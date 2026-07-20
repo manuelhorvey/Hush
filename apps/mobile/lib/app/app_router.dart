@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../services/messaging_service.dart';
-import '../../screens/home_screen.dart';
+import '../../features/conversations/presentation/screens/home_screen.dart';
 import '../../screens/conversation_screen.dart';
 import '../../screens/conversation_complete_screen.dart';
 import '../../screens/conversation_destroyed_screen.dart';
