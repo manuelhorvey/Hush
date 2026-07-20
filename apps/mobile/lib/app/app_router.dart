@@ -4,13 +4,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../services/messaging_service.dart';
 import '../../features/conversations/presentation/screens/home_screen.dart';
-import '../../screens/conversation_screen.dart';
+import '../features/conversations/conversation/presentation/screens/conversation_screen.dart';
 import '../../screens/conversation_complete_screen.dart';
 import '../../screens/conversation_destroyed_screen.dart';
 import '../../screens/splash_screen.dart';
 import '../../screens/welcome_screen.dart';
 import '../../screens/login_screen.dart';
-import '../../screens/new_conversation_screen.dart';
+import '../features/conversations/presentation/screens/new_conversation_screen.dart';
 import '../../screens/privacy_screen.dart';
 import '../../screens/security_screen.dart';
 import '../../screens/settings_screen.dart';
@@ -84,10 +84,21 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoute.conversation,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, state) => ConversationScreen(
-          conversationId: state.pathParameters['id']!,
-          participants: state.extra as List<ParticipantInfo>? ?? [],
-        ),
+        builder: (_, state) {
+          final conversationId = state.pathParameters['id']!;
+          final extra = state.extra;
+          final name = switch (extra) {
+            (final String s) => s,
+            (final List<ParticipantInfo> participants)
+                when participants.isNotEmpty =>
+              participants.first.username,
+            _ => 'Unknown',
+          };
+          return ConversationScreen(
+            conversationId: conversationId,
+            participantName: name,
+          );
+        },
       ),
       GoRoute(
         path: AppRoute.conversationComplete,

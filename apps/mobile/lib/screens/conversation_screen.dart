@@ -115,7 +115,10 @@ class _ConversationScreenState extends State<ConversationScreen> {
         onDone: () => _onWsDisconnected(token),
         onError: (_) => _onWsDisconnected(token),
       );
-    }).catchError((_) => _onWsDisconnected(token));
+    }).catchError((_) {
+      _onWsDisconnected(token);
+      return null;
+    });
   }
 
   void _onWsDisconnected(String token) {
