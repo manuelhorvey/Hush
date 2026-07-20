@@ -10,7 +10,7 @@ import '../services/api_client.dart';
 import '../services/crypto_service.dart';
 import '../services/identity_service.dart';
 import '../services/messaging_service.dart';
-import '../widgets/lifecycle_banner.dart';
+import '../core/design_system/components/lifecycle/lifecycle_banner.dart';
 
 class ConversationScreen extends StatefulWidget {
   final String conversationId;
@@ -271,7 +271,13 @@ class _ConversationScreenState extends State<ConversationScreen> {
       ),
       body: Column(
         children: [
-          LifecycleBanner(status: _status),
+          LifecycleBanner(
+            lifecycle: switch (_status) {
+              'completed' => ConversationLifecycle.closed,
+              'destroyed' => ConversationLifecycle.destroyed,
+              _ => ConversationLifecycle.active,
+            },
+          ),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())

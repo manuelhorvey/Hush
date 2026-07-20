@@ -5,8 +5,8 @@ import '../providers/auth_provider.dart';
 import '../providers/conversations_provider.dart';
 import '../services/messaging_service.dart';
 import '../theme/app_spacing.dart';
-import '../widgets/conversation_card.dart';
-import '../widgets/empty_state.dart';
+import '../core/design_system/components/cards/conversation_card.dart';
+import '../core/design_system/components/empty_state.dart';
 import 'new_conversation_screen.dart';
 
 class HomeScreen extends StatefulWidget {

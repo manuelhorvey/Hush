@@ -4,7 +4,7 @@ import '../../../../providers/auth_provider.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../theme/app_spacing.dart';
 import '../../../../theme/app_typography.dart';
-import '../../../../widgets/empty_state.dart';
+import '../../../../core/design_system/components/empty_state.dart';
 import '../../models/device_identity.dart';
 import '../../providers/identity_provider.dart';
 import '../widgets/device_card.dart';
