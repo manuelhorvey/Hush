@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../core/design_system/components/buttons/hush_button.dart';
+import '../core/design_system/components/inputs/hush_text_field.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
-import 'app_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -29,23 +31,14 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() { _loading = true; _error = null; });
 
     try {
       await context.read<AuthProvider>().login(username);
-
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const AppShell()),
-      );
+      context.go('/chats');
     } on ApiException catch (e) {
-      setState(() {
-        _error = e.message;
-        _loading = false;
-      });
+      setState(() { _error = e.message; _loading = false; });
     } catch (_) {
       setState(() {
         _error = 'Connection failed. Check that the server is running.';
@@ -71,31 +64,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
               ),
               const SizedBox(height: 24),
-              TextField(
+              HushTextField(
                 controller: _usernameController,
-                decoration: InputDecoration(
-                  labelText: 'Username',
-                  errorText: _error,
-                ),
+                label: 'Username',
+                error: _error,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => _login(),
               ),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _loading ? null : _login,
-                  child: _loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : const Text('Login'),
-                ),
+              HushButton(
+                label: 'Login',
+                loading: _loading,
+                onPressed: _login,
               ),
             ],
           ),

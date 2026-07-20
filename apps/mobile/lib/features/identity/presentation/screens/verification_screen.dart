@@ -8,12 +8,12 @@ import '../widgets/verification_card.dart';
 import '../../models/verification_state.dart';
 
 class VerificationScreen extends StatefulWidget {
-  final String phrase;
+  final String? phrase;
   final VerificationState initialState;
 
   const VerificationScreen({
     super.key,
-    required this.phrase,
+    this.phrase,
     this.initialState = VerificationState.unknown,
   });
 
@@ -30,9 +30,13 @@ class _VerificationScreenState extends State<VerificationScreen> {
     _state = widget.initialState;
   }
 
+  String _phrase(BuildContext context) =>
+      widget.phrase ?? context.read<IdentityProvider>().verificationPhrase;
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final phrase = _phrase(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -50,7 +54,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           const SizedBox(height: HushSpacing.xl),
           VerificationCard(
             state: _state,
-            phrase: widget.phrase,
+            phrase: phrase,
             onStartVerification: () {
               context.read<IdentityProvider>().requestVerification();
               setState(() => _state = VerificationState.pending);

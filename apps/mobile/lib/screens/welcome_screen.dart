@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
-import '../features/identity/presentation/screens/identity_create_screen.dart';
-import 'login_screen.dart';
+import 'package:go_router/go_router.dart';
+import '../core/design_system/components/buttons/hush_button.dart';
+import '../theme/app_spacing.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Center(
         child: Padding(
@@ -14,10 +17,18 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.shield_outlined,
-                size: 96,
-                color: Theme.of(context).colorScheme.primary,
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Icon(
+                  Icons.shield_outlined,
+                  size: 48,
+                  color: cs.primary,
+                ),
               ),
               const SizedBox(height: 24),
               Text(
@@ -31,35 +42,21 @@ class WelcomeScreen extends StatelessWidget {
               Text(
                 'Secure, private conversations at your fingertips.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: cs.onSurfaceVariant,
                     ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 48),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const IdentityCreateScreen()),
-                    );
-                  },
-                  child: const Text('Create Identity'),
-                ),
+              HushButton(
+                label: 'Create Identity',
+                onPressed: () => context.go('/create-identity'),
+                icon: Icons.person_add_rounded,
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                          builder: (_) => const LoginScreen()),
-                    );
-                  },
-                  child: const Text('Login'),
-                ),
+              const SizedBox(height: HushSpacing.md),
+              HushOutlineButton(
+                label: 'I have an identity',
+                onPressed: () => context.go('/login'),
+                icon: Icons.login_rounded,
               ),
             ],
           ),

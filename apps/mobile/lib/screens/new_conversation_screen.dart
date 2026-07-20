@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/conversations_provider.dart';
 import '../services/crypto_service.dart';
 import '../services/identity_service.dart';
 import '../services/messaging_service.dart';
-import 'conversation_screen.dart';
 
 class NewConversationScreen extends StatefulWidget {
   const NewConversationScreen({super.key});
@@ -97,13 +97,9 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
       );
 
       if (!mounted) return;
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => ConversationScreen(
-            conversationId: conv.id,
-            participants: conv.participants,
-          ),
-        ),
+      context.go(
+        '/conversation/${conv.id}',
+        extra: conv.participants,
       );
     } catch (e) {
       if (mounted) {

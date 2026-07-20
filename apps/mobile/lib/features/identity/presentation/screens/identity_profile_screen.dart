@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../../../../providers/auth_provider.dart';
 import '../../../../theme/app_colors.dart';
@@ -7,12 +8,9 @@ import '../../../../theme/app_typography.dart';
 import '../../../../widgets/empty_state.dart';
 import '../../providers/identity_provider.dart';
 import '../widgets/device_card.dart';
-import '../widgets/identity_badge.dart';
 import '../widgets/security_status_card.dart';
 import '../widgets/trust_indicator.dart';
 import '../../models/verification_state.dart';
-import 'device_management_screen.dart';
-import 'verification_screen.dart';
 
 class IdentityProfileScreen extends StatefulWidget {
   const IdentityProfileScreen({super.key});
@@ -77,11 +75,7 @@ class _IdentityProfileScreenState extends State<IdentityProfileScreen> {
             title: 'Devices (${identity.devices.length})',
             trailing: ActionChip(
               label: const Text('Manage'),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const DeviceManagementScreen(),
-                ),
-              ),
+              onPressed: () => context.push('/devices'),
             ),
             children: identity.devices.isEmpty
                 ? [
@@ -211,14 +205,7 @@ class _IdentityProfileScreenState extends State<IdentityProfileScreen> {
       margin: EdgeInsets.zero,
       child: InkWell(
         borderRadius: BorderRadius.circular(HushSpacing.borderRadiusMd),
-        onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => VerificationScreen(
-              phrase: phrase,
-              initialState: state,
-            ),
-          ),
-        ),
+        onTap: () => context.push('/verification'),
         child: Padding(
           padding: const EdgeInsets.all(HushSpacing.lg),
           child: Row(

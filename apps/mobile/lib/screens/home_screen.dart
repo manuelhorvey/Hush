@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/conversations_provider.dart';
@@ -6,7 +7,6 @@ import '../services/messaging_service.dart';
 import '../theme/app_spacing.dart';
 import '../widgets/conversation_card.dart';
 import '../widgets/empty_state.dart';
-import 'conversation_screen.dart';
 import 'new_conversation_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -49,15 +49,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openConversation(ConversationInfo conv) async {
-    final destroyed = await Navigator.of(context).push<bool>(
-      MaterialPageRoute(
-        builder: (_) => ConversationScreen(
-          conversationId: conv.id,
-          participants: conv.participants,
-        ),
-      ),
+    await context.push(
+      '/conversation/${conv.id}',
+      extra: conv.participants,
     );
-    if (destroyed == true) _load();
+    _load();
   }
 
   List<ConversationInfo> _filtered(List<ConversationInfo> convs) {
@@ -92,11 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: () async {
-              await Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const NewConversationScreen(),
-                ),
-              );
+              await context.push('/new-conversation');
               _load();
             },
             child: const Icon(Icons.add),
