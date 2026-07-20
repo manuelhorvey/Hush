@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../theme/hush_tokens.dart';
 
 class HushButton extends StatelessWidget {
   final String label;

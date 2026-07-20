@@ -1,3 +1,5 @@
+import 'hush_button.dart';
+
 export 'hush_button.dart' show
     HushButton,
     HushOutlineButton,

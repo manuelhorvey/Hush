@@ -73,7 +73,7 @@ class HushBottomSheet {
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
-          top: Radius.circular(RadiusTokens.lg),
+          top: Radius.circular(HushRadius.lg),
         ),
       ),
       builder: (ctx) => SafeArea(
