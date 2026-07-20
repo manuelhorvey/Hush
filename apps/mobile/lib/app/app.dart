@@ -5,6 +5,7 @@ import 'package:provider/provider.dart' as p;
 import '../../core/providers/auth_state_provider.dart';
 import '../../core/providers/conversations_state_provider.dart';
 import '../../core/providers/theme_mode_provider.dart';
+import '../../features/identity/presentation/providers/identity_service_provider.dart';
 import '../../features/identity/providers/identity_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -36,6 +37,7 @@ class HushApp extends StatelessWidget {
       overrides: [
         authServiceProvider.overrideWithValue(authService),
         messagingServiceProvider.overrideWithValue(messagingService),
+        identityServiceProvider.overrideWithValue(identityService),
       ],
       child: p.MultiProvider(
         providers: [
