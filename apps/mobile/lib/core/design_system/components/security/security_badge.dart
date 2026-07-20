@@ -43,6 +43,7 @@ class SecurityBadge extends StatelessWidget {
 
     return Semantics(
       label: label,
+      excludeSemantics: true,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(

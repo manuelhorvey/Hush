@@ -27,7 +27,7 @@ void main() {
       await tester.pumpWidget(_wrap(
         const LifecycleBanner(lifecycle: ConversationLifecycle.destroyed),
       ));
-      expect(find.textContaining('destroyed'), findsOneWidget);
+      expect(find.textContaining('gone'), findsOneWidget);
     });
 
     testWidgets('has liveRegion Semantics', (tester) async {
@@ -37,7 +37,7 @@ void main() {
       expect(
         tester.getSemantics(find.byType(LifecycleBanner)),
         matchesSemantics(
-          label: 'This conversation has been destroyed.',
+          label: 'This moment is gone.',
           isLiveRegion: true,
         ),
       );

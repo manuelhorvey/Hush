@@ -24,19 +24,15 @@ class HushButton extends StatelessWidget {
   }
 
   Widget _buildChild(BuildContext context) {
-    return Semantics(
-      label: label,
-      enabled: onPressed != null && !loading,
-      child: FilledButton(
-        onPressed: loading ? null : onPressed,
-        child: loading
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-            : _content,
-      ),
+    return FilledButton(
+      onPressed: loading ? null : onPressed,
+      child: loading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : _content,
     );
   }
 

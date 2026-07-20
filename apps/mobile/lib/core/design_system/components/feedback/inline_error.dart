@@ -19,9 +19,13 @@ class InlineError extends StatelessWidget {
     return Semantics(
       label: 'Error: $message',
       liveRegion: true,
+      excludeSemantics: true,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: HushSpacing.md, vertical: HushSpacing.sm),
+        padding: const EdgeInsets.symmetric(
+          horizontal: HushSpacing.md,
+          vertical: HushSpacing.sm,
+        ),
         decoration: BoxDecoration(
           color: cs.errorContainer,
           borderRadius: BorderRadius.circular(HushSpacing.borderRadiusSm),

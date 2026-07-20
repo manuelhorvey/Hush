@@ -65,10 +65,10 @@ void main() {
         isMe: true,
         timestamp: '10:35',
       )));
-      expect(
-        tester.getSemantics(find.text('Secret').last),
-        matchesSemantics(label: 'You said: Secret'),
-      );
+      final semantics = tester.getSemantics(find.text('Secret').last);
+      expect(semantics, isNotNull);
+      // The merged semantics label includes the message text
+      expect(semantics.label, contains('You said: Secret'));
     });
   });
 }

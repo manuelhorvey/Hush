@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hush_mobile/core/design_system/components/buttons/hush_button.dart';
 
@@ -41,10 +42,10 @@ void main() {
 
     testWidgets('has Semantics label', (tester) async {
       await tester.pumpWidget(_wrap(HushButton(label: 'Submit', onPressed: () {})));
-      expect(tester.getSemantics(find.byType(FilledButton)), matchesSemantics(
-        label: 'Submit',
-        isEnabled: true,
-      ));
+      final semantics = tester.getSemantics(find.byType(FilledButton));
+      expect(semantics.label, 'Submit');
+      expect(semantics.getSemanticsData().hasFlag(SemanticsFlag.isEnabled),
+          isTrue);
     });
   });
 

@@ -30,17 +30,17 @@ class LifecycleBanner extends StatelessWidget {
         cs.onSecondaryContainer,
       ),
       ConversationLifecycle.completing => (
-        'Completing conversation...',
+        'Completing moment...',
         cs.tertiaryContainer,
         cs.onTertiaryContainer,
       ),
       ConversationLifecycle.closed => (
-        'Conversation completed. Messages are preserved.',
+        'Moment completed. Messages are preserved.',
         cs.tertiaryContainer,
         cs.onTertiaryContainer,
       ),
       ConversationLifecycle.destroyed => (
-        'This conversation has been destroyed.',
+        'This moment is gone.',
         cs.errorContainer,
         cs.onErrorContainer,
       ),
@@ -50,6 +50,7 @@ class LifecycleBanner extends StatelessWidget {
     return Semantics(
       label: label,
       liveRegion: true,
+      excludeSemantics: true,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

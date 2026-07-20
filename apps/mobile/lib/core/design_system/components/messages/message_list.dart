@@ -80,7 +80,7 @@ class _MessageInputBarState extends State<MessageInputBar> {
                   decoration: InputDecoration(
                     hintText: widget.isActive
                         ? 'Type a message...'
-                        : 'Conversation ${widget.status}',
+                        : 'Moment ${widget.status}',
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 12,
@@ -134,7 +134,7 @@ class ConversationAppBar extends StatelessWidget implements PreferredSizeWidget 
     final cs = Theme.of(context).colorScheme;
 
     return Semantics(
-      label: 'Conversation: $title',
+      label: 'Moment: $title',
       child: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,
