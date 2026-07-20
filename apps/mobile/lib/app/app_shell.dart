@@ -70,7 +70,7 @@ class _MobileShell extends StatelessWidget {
             NavigationDestination(
               icon: Icon(Icons.chat_bubble_outline_rounded),
               selectedIcon: Icon(Icons.chat_bubble_rounded, color: cs.primary),
-              label: 'Conversations',
+              label: 'Moments',
             ),
             NavigationDestination(
               icon: Icon(Icons.person_outline_rounded),
@@ -141,7 +141,7 @@ class _DesktopShell extends StatelessWidget {
               NavigationRailDestination(
                 icon: Icon(Icons.chat_bubble_outline_rounded),
                 selectedIcon: Icon(Icons.chat_bubble_rounded, color: cs.primary),
-                label: const Text('Conversations'),
+                label: const Text('Moments'),
               ),
               NavigationRailDestination(
                 icon: Icon(Icons.person_outline_rounded),

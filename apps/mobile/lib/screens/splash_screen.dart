@@ -51,7 +51,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           child: ScaleTransition(
             scale: _scale,
             child: Semantics(
-              label: 'Hush - Private conversations',
+              label: 'Hush - Private moments',
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -78,7 +78,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Private conversations',
+                    'Private moments',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: cs.onSurfaceVariant,
                         ),

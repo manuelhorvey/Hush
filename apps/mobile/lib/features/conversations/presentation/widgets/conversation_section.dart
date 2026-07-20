@@ -11,6 +11,7 @@ class ConversationSection extends StatefulWidget {
   final bool initiallyExpanded;
   final IconData icon;
   final ValueChanged<Conversation>? onConversationTap;
+  final String? selectedConversationId;
 
   const ConversationSection({
     super.key,
@@ -20,6 +21,7 @@ class ConversationSection extends StatefulWidget {
     this.initiallyExpanded = true,
     this.icon = Icons.chat_bubble_outline_rounded,
     this.onConversationTap,
+    this.selectedConversationId,
   });
 
   @override
@@ -74,7 +76,7 @@ class _ConversationSectionState extends State<ConversationSection>
       children: [
         // Section header
         Semantics(
-          label: '${widget.title}. ${widget.conversations.length} conversations.',
+          label: '${widget.title}. ${widget.conversations.length} moments.',
           button: true,
           child: InkWell(
             onTap: _toggle,
@@ -157,8 +159,8 @@ class _ConversationSectionState extends State<ConversationSection>
                   padding: const EdgeInsets.only(left: HushSpacing.xs + 18 + HushSpacing.sm),
                   child: Text(
                     widget.conversations.isEmpty
-                        ? 'No ${widget.title.toLowerCase()} conversations'
-                        : 'No ${widget.title.toLowerCase()} conversations.',
+                        ? 'No ${widget.title.toLowerCase()} moments'
+                        : 'No ${widget.title.toLowerCase()} moments.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color:
                               cs.onSurfaceVariant.withValues(alpha: 0.5),
@@ -170,6 +172,7 @@ class _ConversationSectionState extends State<ConversationSection>
                   children: widget.conversations.map(
                     (conversation) => ConversationCard(
                       conversation: conversation,
+                      isSelected: conversation.id == widget.selectedConversationId,
                       onTap: () => widget.onConversationTap?.call(conversation),
                     ),
                   ).toList(),

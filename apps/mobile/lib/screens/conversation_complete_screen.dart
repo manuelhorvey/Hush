@@ -24,7 +24,7 @@ class ConversationCompleteScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(HushSpacing.xxl),
           child: Semantics(
-            label: 'Conversation completed. Messages are sealed.',
+            label: 'Moment completed. Messages are sealed.',
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -43,7 +43,7 @@ class ConversationCompleteScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: HushSpacing.xl),
                 Text(
-                  'Conversation Complete',
+                  'Moment Complete',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -63,7 +63,7 @@ class ConversationCompleteScreen extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                  label: const Text('Back to Chats'),
+                  label: const Text('Back to Moments'),
                 ),
               ],
             ),

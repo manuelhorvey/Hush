@@ -22,7 +22,7 @@ class ConversationDestroyedScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(HushSpacing.xxl),
           child: Semantics(
-            label: 'Conversation destroyed. All messages permanently deleted.',
+            label: 'Moment gone. All messages permanently deleted.',
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -41,7 +41,7 @@ class ConversationDestroyedScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: HushSpacing.xl),
                 Text(
-                  'Conversation Destroyed',
+                  'Moment Gone',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
@@ -61,7 +61,7 @@ class ConversationDestroyedScreen extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: () => Navigator.of(context).pop(),
                   icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                  label: const Text('Back to Chats'),
+                  label: const Text('Back to Moments'),
                 ),
               ],
             ),
