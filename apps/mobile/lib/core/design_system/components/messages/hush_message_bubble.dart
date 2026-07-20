@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/hush_tokens.dart';
 import '../../theme/hush_theme_extensions.dart';
-import '../../responsive/responsive_layout.dart';
+import '../../../responsive/responsive_layout.dart';
 
 enum MessageStatus { normal, sending, delivered, failed }
 
@@ -56,10 +56,10 @@ class HushMessageBubble extends StatelessWidget {
                     ? cs.errorContainer
                     : bubbleColor,
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(RadiusTokens.lg),
-                  topRight: const Radius.circular(RadiusTokens.lg),
-                  bottomLeft: Radius.circular(isMe ? RadiusTokens.lg : RadiusTokens.xs),
-                  bottomRight: Radius.circular(isMe ? RadiusTokens.xs : RadiusTokens.lg),
+                  topLeft: const Radius.circular(HushRadius.lg),
+                  topRight: const Radius.circular(HushRadius.lg),
+                  bottomLeft: Radius.circular(isMe ? HushRadius.lg : HushRadius.xs),
+                  bottomRight: Radius.circular(isMe ? HushRadius.xs : HushRadius.lg),
                 ),
               ),
               child: Column(
@@ -111,8 +111,8 @@ class HushMessageBubble extends StatelessWidget {
     return '${senderName ?? "Participant"} said: $text';
   }
 
-  Widget? _statusIndicator(ColorScheme cs, HushCustomColors custom) {
-    if (!isMe) return null;
+  Widget _statusIndicator(ColorScheme cs, HushCustomColors custom) {
+    if (!isMe) return const SizedBox.shrink();
 
     switch (_status) {
       case MessageStatus.sending:

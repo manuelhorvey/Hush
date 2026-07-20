@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../theme/app_spacing.dart';
-import '../../theme/hush_theme_extensions.dart';
+import '../../../../theme/app_spacing.dart';
+import '../theme/hush_theme_extensions.dart';
 
 typedef EmptyState = HushEmptyState;
 
@@ -48,7 +48,7 @@ class HushEmptyState extends StatelessWidget {
       actionLabel = null,
       onAction = null;
 
-  const HushEmptyState.error({super.key, this.actionLabel, this.onAction})
+  const HushEmptyState.error({super.key})
     : icon = Icons.error_outline_rounded,
       title = 'Something went wrong',
       subtitle = 'Please try again',

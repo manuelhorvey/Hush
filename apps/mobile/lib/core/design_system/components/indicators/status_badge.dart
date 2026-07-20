@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_spacing.dart';
+import '../../../../../theme/app_spacing.dart';
 import '../../theme/hush_theme_extensions.dart';
 
 enum BadgeVariant { neutral, success, warning, error, info }

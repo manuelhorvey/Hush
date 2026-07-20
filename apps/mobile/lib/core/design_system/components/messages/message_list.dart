@@ -104,7 +104,7 @@ class _MessageInputBarState extends State<MessageInputBar> {
   }
 }
 
-class ConversationAppBar extends StatelessWidget {
+class ConversationAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
   final String status;
   final bool isActive;
@@ -125,6 +125,9 @@ class ConversationAppBar extends StatelessWidget {
     required this.onDestroy,
     required this.onShowParticipants,
   });
+
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 
   @override
   Widget build(BuildContext context) {

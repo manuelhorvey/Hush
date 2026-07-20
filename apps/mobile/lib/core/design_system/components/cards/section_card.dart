@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_spacing.dart';
+import '../../../../../theme/app_spacing.dart';
 
 class SectionCard extends StatelessWidget {
   final Widget? leading;
@@ -72,13 +72,13 @@ class SectionCard extends StatelessWidget {
 
   String _buildSemanticsLabel() {
     final parts = <String>[];
-    if (title != null) {
-      final titleWidget = title as Text?;
-      if (titleWidget?.data != null) parts.add(titleWidget!.data!);
+    if (title != null && title is Text) {
+      final t = title as Text;
+      if (t.data != null) parts.add(t.data!);
     }
-    if (subtitle != null) {
-      final subWidget = subtitle as Text?;
-      if (subWidget?.data != null) parts.add(subWidget!.data!);
+    if (subtitle != null && subtitle is Text) {
+      final s = subtitle as Text;
+      if (s.data != null) parts.add(s.data!);
     }
     return parts.join(' - ');
   }

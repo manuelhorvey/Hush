@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../services/messaging_service.dart';
+import 'auth_state_provider.dart';
 
 class ConversationsState {
   final List<ConversationInfo> conversations;
