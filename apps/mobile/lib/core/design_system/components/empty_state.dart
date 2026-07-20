@@ -22,9 +22,9 @@ class HushEmptyState extends StatelessWidget {
 
   const HushEmptyState.noConversations({super.key})
     : icon = Icons.chat_bubble_outline_rounded,
-      title = 'No conversations yet',
-      subtitle = 'Start a new private conversation',
-      actionLabel = 'New Conversation',
+      title = 'No moments yet',
+      subtitle = 'Start a new private moment',
+      actionLabel = 'Start a Moment',
       onAction = null;
 
   const HushEmptyState.noDevices({super.key})

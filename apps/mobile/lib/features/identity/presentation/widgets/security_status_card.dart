@@ -23,7 +23,7 @@ class SecurityStatusCard extends StatelessWidget {
     this.isVerified = false,
   })  : title = 'Private',
         description =
-            'This conversation is private. Only you and the other participants can access it.',
+            'This moment is private. Only you and the other participants can access it.',
         icon = Icons.lock_rounded;
 
   const SecurityStatusCard.verified({super.key})
