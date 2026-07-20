@@ -1,0 +1,140 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hush_mobile/features/conversations/presentation/providers/conversations_provider.dart';
+import 'package:hush_mobile/features/conversations/presentation/screens/home_screen.dart';
+import 'package:hush_mobile/features/conversations/presentation/widgets/conversation_search.dart';
+
+Widget createTestApp() {
+  return ProviderScope(
+    child: const MaterialApp(
+      home: HomeScreen(),
+    ),
+  );
+}
+
+class _EmptyNotifier extends ConversationsNotifier {
+  @override
+  ConversationsState build() => const ConversationsState(
+    conversations: [],
+    status: ConversationsStatus.empty,
+  );
+
+  @override
+  Future<void> load() async {} // no-op: already in empty state
+}
+
+Widget createEmptyApp() {
+  return ProviderScope(
+    overrides: [
+      conversationsProvider.overrideWith(() => _EmptyNotifier()),
+    ],
+    child: const MaterialApp(
+      home: HomeScreen(),
+    ),
+  );
+}
+
+void main() {
+  group('HomeScreen', () {
+    testWidgets('renders without errors', (tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(HomeScreen), findsOneWidget);
+    });
+
+    testWidgets('renders Hush header', (tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hush'), findsOneWidget);
+    });
+
+    testWidgets('renders search bar', (tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ConversationSearch), findsOneWidget);
+    });
+
+    testWidgets('renders floating action button', (tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    });
+
+    testWidgets('identity avatar is present in header', (tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pumpAndSettle();
+
+      // Avatar shows '?' when no identity is loaded
+      expect(find.text('?'), findsOneWidget);
+
+      // Verify semantics exist for the avatar
+      final semantics = tester.getSemantics(find.text('?'));
+      expect(semantics, isNotNull);
+    });
+
+    testWidgets('search field has hint text', (tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pumpAndSettle();
+
+      expect(find.text('Search by name'), findsOneWidget);
+    });
+
+    group('empty state', () {
+      testWidgets('shows empty title when no conversations exist', (tester) async {
+        await tester.pumpWidget(createEmptyApp());
+        await tester.pump();
+
+        expect(find.text('No conversations yet'), findsOneWidget);
+      });
+
+      testWidgets('shows empty description', (tester) async {
+        await tester.pumpWidget(createEmptyApp());
+        await tester.pump();
+
+        expect(find.textContaining('Start a private conversation'), findsOneWidget);
+      });
+
+      testWidgets('shows New Conversation button in empty state', (tester) async {
+        await tester.pumpWidget(createEmptyApp());
+        await tester.pump();
+
+        expect(find.text('New Conversation'), findsOneWidget);
+      });
+
+      testWidgets('empty state has New Conversation button', (tester) async {
+        await tester.pumpWidget(createEmptyApp());
+        await tester.pump();
+
+        expect(find.byType(FilledButton), findsOneWidget);
+      });
+
+      testWidgets('empty state shows empty icon', (tester) async {
+        await tester.pumpWidget(createEmptyApp());
+        await tester.pump();
+
+        // Icon may appear in both the list pane and companion pane on desktop
+        expect(
+          find.byIcon(Icons.chat_bubble_outline_rounded),
+          findsAtLeastNWidgets(1),
+        );
+      });
+
+      testWidgets('does not show sections when empty', (tester) async {
+        await tester.pumpWidget(createEmptyApp());
+        await tester.pump();
+
+        // Active section should not be present
+        expect(find.text('Active'), findsNothing);
+        // Closed section should not be present
+        expect(find.text('Closed'), findsNothing);
+        // Search should not be present in empty-all state
+        expect(find.byType(ConversationSearch), findsNothing);
+      });
+    });
+  });
+}
