@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../theme/hush_tokens.dart';
+import '../../theme/hush_theme_extensions.dart';
+import '../../responsive/responsive_layout.dart';
+
+enum MessageStatus { normal, sending, delivered, failed }
 
 class HushMessageBubble extends StatelessWidget {
   final String text;
@@ -7,7 +11,7 @@ class HushMessageBubble extends StatelessWidget {
   final String? senderName;
   final String timestamp;
   final bool isEncrypted;
-  final bool showStatus;
+  final MessageStatus status;
 
   const HushMessageBubble({
     super.key,
@@ -16,19 +20,18 @@ class HushMessageBubble extends StatelessWidget {
     this.senderName,
     required this.timestamp,
     this.isEncrypted = false,
-    this.showStatus = false,
+    this.status = MessageStatus.normal,
   });
 
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final custom = HushCustomColors.of(context);
     final bubbleColor = isMe ? cs.primaryContainer : cs.surfaceContainerHighest;
     final textColor = isMe ? cs.onPrimaryContainer : cs.onSurface;
 
     return Semantics(
-      label: isMe
-          ? 'You said: $text'
-          : '${senderName ?? "Participant"} said: $text',
+      label: _semanticsLabel,
       child: Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
@@ -47,9 +50,11 @@ class HushMessageBubble extends StatelessWidget {
             child: Container(
               margin: const EdgeInsets.symmetric(vertical: 2),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              constraints: const BoxConstraints(maxWidth: 280),
+              constraints: BoxConstraints(maxWidth: _bubbleMaxWidth(context)),
               decoration: BoxDecoration(
-                color: bubbleColor,
+                color: _status == MessageStatus.failed
+                    ? cs.errorContainer
+                    : bubbleColor,
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(RadiusTokens.lg),
                   topRight: const Radius.circular(RadiusTokens.lg),
@@ -61,30 +66,25 @@ class HushMessageBubble extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    text,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyLarge
-                        ?.copyWith(color: textColor),
+                    _status == MessageStatus.failed ? 'Failed to send' : text,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: _status == MessageStatus.failed
+                              ? cs.onErrorContainer
+                              : textColor,
+                        ),
                   ),
                   const SizedBox(height: 2),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        timestamp,
+                        _status == MessageStatus.failed ? '' : timestamp,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               color: cs.onSurfaceVariant.withValues(alpha: 0.7),
                             ),
                       ),
-                      if (showStatus && isMe) ...[
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.check_rounded,
-                          size: 14,
-                          color: cs.onSurfaceVariant.withValues(alpha: 0.5),
-                        ),
-                      ],
+                      const SizedBox(width: 4),
+                      _statusIndicator(cs, custom),
                     ],
                   ),
                 ],
@@ -95,51 +95,39 @@ class HushMessageBubble extends StatelessWidget {
       ),
     );
   }
-}
 
-class HushSecurityBubble extends StatelessWidget {
-  final String text;
-  final bool isEncrypted;
+  MessageStatus get _status => status;
 
-  const HushSecurityBubble({
-    super.key,
-    required this.text,
-    this.isEncrypted = true,
-  });
+  double _bubbleMaxWidth(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    if (width > 600) return 480;
+    if (width > 400) return width * 0.72;
+    return width * 0.82;
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Semantics(
-      label: 'Encrypted message',
-      child: Align(
-        alignment: Alignment.center,
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(RadiusTokens.sm),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                isEncrypted ? Icons.lock_rounded : Icons.lock_open_rounded,
-                size: 14,
-                color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-              const SizedBox(width: 6),
-              Text(
-                text,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.6),
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
+  String get _semanticsLabel {
+    if (_status == MessageStatus.failed) return 'Message failed to send';
+    if (isMe) return 'You said: $text';
+    return '${senderName ?? "Participant"} said: $text';
+  }
+
+  Widget? _statusIndicator(ColorScheme cs, HushCustomColors custom) {
+    if (!isMe) return null;
+
+    switch (_status) {
+      case MessageStatus.sending:
+        return SizedBox(
+          width: 12,
+          height: 12,
+          child: CircularProgressIndicator(strokeWidth: 1.5, color: cs.onSurfaceVariant),
+        );
+      case MessageStatus.delivered:
+        return Icon(Icons.check_circle_rounded, size: 14, color: custom.success);
+      case MessageStatus.failed:
+        return Icon(Icons.error_rounded, size: 14, color: cs.error);
+      case MessageStatus.normal:
+        return Icon(Icons.check_rounded, size: 14,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.5));
+    }
   }
 }

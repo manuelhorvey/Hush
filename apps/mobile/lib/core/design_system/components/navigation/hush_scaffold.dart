@@ -25,7 +25,7 @@ class HushScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: backgroundColor ?? cs.background,
+      backgroundColor: backgroundColor ?? cs.surface,
       appBar: appBar as PreferredSizeWidget?,
       body: Padding(
         padding: bodyPadding ??

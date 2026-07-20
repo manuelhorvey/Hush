@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../theme/app_spacing.dart';
 
 class HushAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
@@ -34,5 +33,5 @@ class HushAppBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   @override
-  Size get preferredSize => const Size.fromHeight(HushSpacing.buttonHeight + 8);
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }

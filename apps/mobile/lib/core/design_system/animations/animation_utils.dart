@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
-import 'animation_tokens.dart';
+import '../theme/motion.dart';
+
+bool _reducedMotion(BuildContext context) =>
+    MediaQuery.of(context).accessibleNavigation ||
+    MediaQuery.of(context).disableAnimations;
+
+Duration _resolveDuration(BuildContext context, Duration duration) {
+  if (_reducedMotion(context)) return Duration.zero;
+  return duration;
+}
 
 class AnimatedFadeIn extends StatefulWidget {
   final Widget child;
@@ -10,7 +19,7 @@ class AnimatedFadeIn extends StatefulWidget {
   const AnimatedFadeIn({
     super.key,
     required this.child,
-    this.duration = MotionDurations.normal,
+    this.duration = HushMotion.normal,
     this.begin = 0.0,
     this.delayMs = 0,
   });
@@ -29,11 +38,11 @@ class _AnimatedFadeInState extends State<AnimatedFadeIn>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: widget.duration,
+      duration: _resolveDuration(context, widget.duration),
     );
     _animation = CurvedAnimation(
       parent: _controller,
-      curve: MotionCurves.decelerate,
+      curve: HushMotion.decelerate,
     );
     if (widget.delayMs > 0) {
       Future.delayed(Duration(milliseconds: widget.delayMs), _controller.forward);
@@ -50,10 +59,7 @@ class _AnimatedFadeInState extends State<AnimatedFadeIn>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _animation,
-      child: widget.child,
-    );
+    return FadeTransition(opacity: _animation, child: widget.child);
   }
 }
 
@@ -65,7 +71,7 @@ class AnimatedSlideFade extends StatefulWidget {
   const AnimatedSlideFade({
     super.key,
     required this.child,
-    this.duration = MotionDurations.normal,
+    this.duration = HushMotion.normal,
     this.offset = const Offset(0, 12),
   });
 
@@ -84,18 +90,18 @@ class _AnimatedSlideFadeState extends State<AnimatedSlideFade>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: widget.duration,
+      duration: _resolveDuration(context, widget.duration),
     );
     _fadeAnimation = CurvedAnimation(
       parent: _controller,
-      curve: MotionCurves.decelerate,
+      curve: HushMotion.decelerate,
     );
     _slideAnimation = Tween<Offset>(
       begin: widget.offset,
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _controller,
-      curve: MotionCurves.decelerate,
+      curve: HushMotion.decelerate,
     ));
     _controller.forward();
   }
@@ -110,31 +116,76 @@ class _AnimatedSlideFadeState extends State<AnimatedSlideFade>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slideAnimation, child: widget.child),
     );
   }
 }
 
-class StaggeredListAnimation extends StatelessWidget {
+class AnimatedScaleIn extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+  final double begin;
+
+  const AnimatedScaleIn({
+    super.key,
+    required this.child,
+    this.duration = HushMotion.normal,
+    this.begin = 0.85,
+  });
+
+  @override
+  State<AnimatedScaleIn> createState() => _AnimatedScaleInState();
+}
+
+class _AnimatedScaleInState extends State<AnimatedScaleIn>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: _resolveDuration(context, widget.duration),
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: HushMotion.emphasize,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(scale: _animation, child: widget.child);
+  }
+}
+
+class HushStaggeredAnimation extends StatelessWidget {
   final int itemCount;
   final Widget Function(BuildContext, int) itemBuilder;
   final Duration itemDuration;
-  final int baseDelayMs;
+  final Axis scrollDirection;
 
-  const StaggeredListAnimation({
+  const HushStaggeredAnimation({
     super.key,
     required this.itemCount,
     required this.itemBuilder,
-    this.itemDuration = MotionDurations.normal,
-    this.baseDelayMs = 50,
+    this.itemDuration = HushMotion.normal,
+    this.scrollDirection = Axis.vertical,
   });
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
+      scrollDirection: scrollDirection,
       itemCount: itemCount,
       itemBuilder: (context, index) {
         return AnimatedSlideFade(

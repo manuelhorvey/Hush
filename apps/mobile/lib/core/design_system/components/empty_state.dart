@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_spacing.dart';
+import '../../theme/hush_theme_extensions.dart';
+
+typedef EmptyState = HushEmptyState;
 
 class HushEmptyState extends StatelessWidget {
   final IconData icon;
@@ -16,6 +19,41 @@ class HushEmptyState extends StatelessWidget {
     this.actionLabel,
     this.onAction,
   });
+
+  const HushEmptyState.noConversations({super.key})
+    : icon = Icons.chat_bubble_outline_rounded,
+      title = 'No conversations yet',
+      subtitle = 'Start a new private conversation',
+      actionLabel = 'New Conversation',
+      onAction = null;
+
+  const HushEmptyState.noDevices({super.key})
+    : icon = Icons.devices_rounded,
+      title = 'No devices',
+      subtitle = 'Your identity exists on this device',
+      actionLabel = null,
+      onAction = null;
+
+  const HushEmptyState.offline({super.key})
+    : icon = Icons.wifi_off_rounded,
+      title = 'No connection',
+      subtitle = 'Connect to the internet to use Hush',
+      actionLabel = null,
+      onAction = null;
+
+  const HushEmptyState.searchEmpty({super.key})
+    : icon = Icons.search_off_rounded,
+      title = 'No results found',
+      subtitle = 'Try a different search term',
+      actionLabel = null,
+      onAction = null;
+
+  const HushEmptyState.error({super.key, this.actionLabel, this.onAction})
+    : icon = Icons.error_outline_rounded,
+      title = 'Something went wrong',
+      subtitle = 'Please try again',
+      actionLabel = null,
+      onAction = null;
 
   @override
   Widget build(BuildContext context) {

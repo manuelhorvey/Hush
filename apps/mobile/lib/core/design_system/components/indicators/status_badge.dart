@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../theme/app_spacing.dart';
+import '../../theme/hush_theme_extensions.dart';
 
 enum BadgeVariant { neutral, success, warning, error, info }
 
@@ -18,7 +19,8 @@ class StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final (bg, fg) = _colors(cs);
+    final custom = HushCustomColors.of(context);
+    final (bg, fg) = _colors(cs, custom);
 
     return Semantics(
       label: label,
@@ -51,12 +53,12 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  (Color, Color) _colors(ColorScheme cs) {
+  (Color, Color) _colors(ColorScheme cs, HushCustomColors custom) {
     switch (variant) {
       case BadgeVariant.success:
-        return (cs.primaryContainer, cs.onPrimaryContainer);
+        return (custom.successContainer, custom.onSuccess);
       case BadgeVariant.warning:
-        return (cs.errorContainer, cs.onErrorContainer);
+        return (custom.warningContainer, custom.onWarning);
       case BadgeVariant.error:
         return (cs.errorContainer, cs.onErrorContainer);
       case BadgeVariant.info:
