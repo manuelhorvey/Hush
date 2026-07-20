@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../features/identity/models/verification_state.dart';
+import '../features/identity/presentation/screens/device_management_screen.dart';
+import '../features/identity/presentation/screens/identity_profile_screen.dart';
+import '../features/identity/presentation/widgets/identity_badge.dart';
+import '../features/identity/presentation/widgets/trust_indicator.dart';
+import '../features/identity/providers/identity_provider.dart';
 import '../providers/auth_provider.dart';
+import '../theme/app_colors.dart';
 import '../theme/app_spacing.dart';
-import 'devices_screen.dart';
 import 'welcome_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -16,8 +22,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Consumer<AuthProvider>(
-      builder: (context, auth, _) {
+    return Consumer2<AuthProvider, IdentityProvider>(
+      builder: (context, auth, identity, _) {
+        final state = identity.userIdentity?.verificationState
+            ?? VerificationState.unknown;
+        final displayName = auth.username ?? '...';
+
         return Scaffold(
           appBar: AppBar(title: const Text('Settings')),
           body: ListView(
@@ -28,55 +38,85 @@ class _SettingsScreenState extends State<SettingsScreen> {
               HushSpacing.xxl,
             ),
             children: [
-              Container(
-                padding: const EdgeInsets.all(HushSpacing.lg),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius:
-                      BorderRadius.circular(HushSpacing.borderRadiusMd),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: cs.primaryContainer,
-                        borderRadius:
-                            BorderRadius.circular(HushSpacing.borderRadiusMd),
-                      ),
-                      child: Icon(
-                        Icons.person_rounded,
-                        size: 24,
-                        color: cs.primary,
+              Semantics(
+                label: 'Identity profile for $displayName',
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(HushSpacing.borderRadiusMd),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const IdentityProfileScreen(),
                       ),
                     ),
-                    const SizedBox(width: HushSpacing.md),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Padding(
+                      padding: const EdgeInsets.all(HushSpacing.lg),
+                      child: Row(
                         children: [
-                          Text(
-                            auth.username ?? '...',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(fontWeight: FontWeight.w600),
-                          ),
-                          if (auth.userId != null)
-                            Text(
-                              auth.userId!,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: cs.onSurfaceVariant),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: cs.primaryContainer,
+                              borderRadius: BorderRadius.circular(
+                                HushSpacing.borderRadiusMd,
+                              ),
                             ),
+                            child: Center(
+                              child: Text(
+                                displayName.isNotEmpty
+                                    ? displayName[0].toUpperCase()
+                                    : '?',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleLarge
+                                    ?.copyWith(
+                                      color: cs.onPrimaryContainer,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: HushSpacing.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  displayName,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleMedium
+                                      ?.copyWith(fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    TrustIndicator(state: state, size: 10),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      state.label,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: _stateColor(state),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                          ),
                         ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
               ),
               const SizedBox(height: HushSpacing.xl),
@@ -99,7 +139,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute(
-                            builder: (_) => const DevicesScreen()),
+                          builder: (_) => const DeviceManagementScreen(),
+                        ),
+                      ),
+                    ),
+                    Divider(
+                        height: 1,
+                        indent: 56,
+                        color: cs.outlineVariant),
+                    ListTile(
+                      leading: Icon(Icons.verified_outlined, color: cs.primary),
+                      title: const Text('Verification'),
+                      trailing: Icon(Icons.chevron_right,
+                          color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const IdentityProfileScreen(),
+                        ),
                       ),
                     ),
                     Divider(
@@ -144,5 +200,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       (_) => false,
     );
+  }
+
+  Color _stateColor(VerificationState state) {
+    switch (state) {
+      case VerificationState.verified:
+        return HushColors.success;
+      case VerificationState.warning:
+        return HushColors.error;
+      case VerificationState.pending:
+        return HushColors.secondary;
+      case VerificationState.unknown:
+        return Theme.of(context).colorScheme.onSurfaceVariant;
+    }
   }
 }

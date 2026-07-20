@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'create_identity_screen.dart';
+import '../features/identity/presentation/screens/identity_create_screen.dart';
 import 'login_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
@@ -42,7 +42,7 @@ class WelcomeScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
-                          builder: (_) => const CreateIdentityScreen()),
+                          builder: (_) => const IdentityCreateScreen()),
                     );
                   },
                   child: const Text('Create Identity'),

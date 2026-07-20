@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'features/identity/providers/identity_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/connectivity_provider.dart';
 import 'providers/conversations_provider.dart';
@@ -21,12 +22,13 @@ class HushApp extends StatelessWidget {
     final apiMessaging = ApiClient(baseUrl: 'http://$apiHost:8083');
 
     final authService = AuthService(api: apiAuth);
-    final messagingService = MessagingService(api: apiMessaging);
+    final cryptoService = CryptoService();
     final identityService = IdentityService(api: apiIdentity);
+    final messagingService = MessagingService(api: apiMessaging);
 
     return MultiProvider(
       providers: [
-        Provider<CryptoService>.value(value: CryptoService()),
+        Provider<CryptoService>.value(value: cryptoService),
         Provider<IdentityService>.value(value: identityService),
         Provider<MessagingService>.value(value: messagingService),
         ChangeNotifierProvider<AuthProvider>(
@@ -37,6 +39,12 @@ class HushApp extends StatelessWidget {
         ),
         ChangeNotifierProvider<ConnectivityProvider>(
           create: (_) => ConnectivityProvider(),
+        ),
+        ChangeNotifierProvider<IdentityProvider>(
+          create: (_) => IdentityProvider(
+            identity: identityService,
+            crypto: cryptoService,
+          ),
         ),
       ],
       child: MaterialApp(

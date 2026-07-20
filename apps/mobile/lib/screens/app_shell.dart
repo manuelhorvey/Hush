@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../features/identity/presentation/screens/identity_profile_screen.dart';
 import '../widgets/connectivity_banner.dart';
 import 'home_screen.dart';
 import 'settings_screen.dart';
@@ -13,6 +14,12 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
 
+  static const _screens = <Widget>[
+    HomeScreen(),
+    IdentityProfileScreen(),
+    SettingsScreen(),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -25,10 +32,7 @@ class _AppShellState extends State<AppShell> {
           Expanded(
             child: IndexedStack(
               index: _selectedIndex,
-              children: const [
-                HomeScreen(),
-                SettingsScreen(),
-              ],
+              children: _screens,
             ),
           ),
         ],
@@ -51,6 +55,11 @@ class _AppShellState extends State<AppShell> {
               icon: Icon(Icons.chat_bubble_outline_rounded),
               selectedIcon: Icon(Icons.chat_bubble_rounded, color: cs.primary),
               label: 'Chats',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline_rounded),
+              selectedIcon: Icon(Icons.person_rounded, color: cs.primary),
+              label: 'Identity',
             ),
             NavigationDestination(
               icon: Icon(Icons.settings_outlined),
