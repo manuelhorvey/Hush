@@ -82,7 +82,7 @@ void main() {
     test('accessibilityLabel contains lifecycle description', () {
       expect(
         activeConv.accessibilityLabel,
-        contains('Conversation active'),
+        contains('Moment active'),
       );
     });
 

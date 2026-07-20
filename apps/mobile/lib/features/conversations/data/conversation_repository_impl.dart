@@ -5,6 +5,7 @@ import '../models/conversation.dart';
 
 class ConversationRepositoryImpl implements ConversationRepository {
   final Random _rng;
+  final List<Conversation> _createdConversations = [];
 
   ConversationRepositoryImpl({Random? random})
       : _rng = random ?? Random();
@@ -19,7 +20,29 @@ class ConversationRepositoryImpl implements ConversationRepository {
   Future<List<Conversation>> listConversations() async {
     // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 300));
-    return generateMockData();
+    return [...generateMockData(), ..._createdConversations];
+  }
+
+  @override
+  Future<Conversation> createConversation({
+    required String participantName,
+    required String participantId,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 200));
+    final conversation = Conversation(
+      id: 'conv-created-${_rng.nextInt(99999)}',
+      participants: [
+        ConversationParticipant(
+          id: participantId,
+          displayName: participantName,
+        ),
+      ],
+      lifecycle: ConversationLifecycle.active,
+      createdAt: DateTime.now(),
+      isVerified: false,
+    );
+    _createdConversations.add(conversation);
+    return conversation;
   }
 
   @override

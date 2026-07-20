@@ -53,6 +53,20 @@ class ConversationsNotifier extends Notifier<ConversationsState> {
       );
     }
   }
+
+  Future<Conversation> createConversation({
+    required String participantName,
+    required String participantId,
+  }) async {
+    final repo = ref.read(conversationRepositoryProvider);
+    final conversation = await repo.createConversation(
+      participantName: participantName,
+      participantId: participantId,
+    );
+    // Reload to update the state with the new conversation
+    await load();
+    return conversation;
+  }
 }
 
 final conversationsProvider =

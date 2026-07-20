@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/design_system/components/indicators/empty_section.dart';
 import '../../../../core/design_system/theme/theme.dart';
 import '../../../../core/responsive/responsive_layout.dart';
 import '../../../../features/identity/presentation/providers/identity_notifier.dart';
 import '../../models/conversation.dart';
 import '../providers/conversations_provider.dart';
+import '../widgets/conversation_detail_pane.dart';
 import '../widgets/conversation_search.dart';
 import '../widgets/conversation_section.dart';
 
@@ -75,7 +77,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       if (isDesktop) {
         setState(() => _selectedConversationId = conversation.id);
       } else {
-        context.push('/conversation/${conversation.id}');
+        context.push('/conversation/${conversation.id}',
+            extra: conversation.displayName);
       }
     }
 
@@ -96,7 +99,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       status, allActive, allClosed, allConversations, cs, size,
                     );
                   }
-                  return _buildBody(status, allActive, allClosed, cs, onConversationTap);
+                  return _buildBody(
+                    status, allActive, allClosed, cs, onConversationTap,
+                    selectedConversationId: null,
+                  );
                 },
               ),
             ),
@@ -106,7 +112,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
       // Floating action button
       floatingActionButton: Semantics(
-        label: 'New conversation',
+        label: 'Start a moment',
         button: true,
         child: FloatingActionButton(
           onPressed: () async {
@@ -196,8 +202,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     List<Conversation> active,
     List<Conversation> closed,
     ColorScheme cs,
-    void Function(Conversation conversation)? onConversationTap,
-  ) {
+    void Function(Conversation conversation)? onConversationTap, {
+    String? selectedConversationId,
+  })
+  {
     switch (status) {
       case ConversationsStatus.loading:
         return const Center(
@@ -209,7 +217,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
       case ConversationsStatus.loaded:
       case ConversationsStatus.empty:
-        return _buildContent(active, closed, cs, onConversationTap);
+        return _buildContent(active, closed, cs, onConversationTap,
+            selectedConversationId: selectedConversationId);
     }
   }
 
@@ -227,14 +236,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             const SizedBox(height: HushSpacing.lg),
             Text(
-              'Unable to load conversations',
+              'Unable to load moments',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
             ),
             const SizedBox(height: HushSpacing.sm),
             Text(
-              'Your private conversations will resume\nwhen you\'re back online.',
+              'Your moments will resume\nwhen you\'re back online.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
@@ -257,8 +266,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     List<Conversation> active,
     List<Conversation> closed,
     ColorScheme cs,
-    void Function(Conversation conversation)? onConversationTap,
-  ) {
+    void Function(Conversation conversation)? onConversationTap, {
+    String? selectedConversationId,
+  })
+  {
     // Show empty state if both lists are empty
     if (active.isEmpty && closed.isEmpty) {
       return _buildEmptyAll(cs);
@@ -289,16 +300,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           // Active conversations
           if (active.isNotEmpty)
             ConversationSection(
-              title: 'Active',
-              subtitle: 'Conversations that need your attention',
+              title: 'Active Moments',
+              subtitle: 'Moments that need your attention',
               conversations: active,
               initiallyExpanded: true,
               icon: Icons.chat_bubble_rounded,
               onConversationTap: onConversationTap,
+              selectedConversationId: selectedConversationId,
             )
           else ...[
-            _buildEmptySection(cs, 'No active conversations.',
-                'Start a private conversation when you\'re ready.'),
+            const HushEmptySection(
+              title: 'No active moments.',
+              subtitle: 'Start a private moment when you\'re ready.',
+            ),
           ],
 
           if (active.isNotEmpty && (closed.isNotEmpty || _searchQuery.isEmpty))
@@ -307,16 +321,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           // Closed conversations
           if (closed.isNotEmpty)
             ConversationSection(
-              title: 'Closed',
-              subtitle: 'Completed conversations',
+              title: 'Past Moments',
+              subtitle: 'Moments that have ended',
               conversations: closed,
               initiallyExpanded: false,
               icon: Icons.check_circle_outline_rounded,
               onConversationTap: onConversationTap,
+              selectedConversationId: selectedConversationId,
             )
           else if (active.isNotEmpty) ...[
             const SizedBox(height: HushSpacing.md),
-            _buildEmptySection(cs, 'No completed conversations yet.', null),
+            const HushEmptySection(
+              title: 'No moments yet.',
+            ),
           ],
         ],
       ),
@@ -337,14 +354,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             const SizedBox(height: HushSpacing.lg),
             Text(
-              'No conversations yet',
+              'No moments yet',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
             ),
             const SizedBox(height: HushSpacing.sm),
             Text(
-              'Start a private conversation\nwhen you\'re ready.',
+              'Start a private moment\nwhen you\'re ready.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
                   ),
@@ -359,7 +376,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 }
               },
               icon: const Icon(Icons.add_rounded, size: 18),
-              label: const Text('New Conversation'),
+              label: const Text('Start a Moment'),
             ),
           ],
         ),
@@ -392,7 +409,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // Conversation list pane (always visible)
         SizedBox(
           width: listWidth,
-          child: _buildBody(status, active, closed, cs, onConversationTap),
+          child: _buildBody(
+                status, active, closed, cs, onConversationTap,
+                selectedConversationId: _selectedConversationId,
+              ),
         ),
 
         // Vertical divider
@@ -405,141 +425,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         // Companion pane — shows detail when a conversation is selected
         Expanded(
           child: selectedConversation != null
-              ? _buildConversationDetail(selectedConversation, cs)
+              ? ConversationDetailPane(
+                  conversation: selectedConversation,
+                  onDeselect: () =>
+                      setState(() => _selectedConversationId = null),
+                )
               : _buildEmptyCompanion(cs),
         ),
       ],
-    );
-  }
-
-  Widget _buildConversationDetail(Conversation conversation, ColorScheme cs) {
-    final custom = HushCustomColors.of(context);
-    final isOpen = conversation.lifecycle.isOpen;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(HushSpacing.xxl),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Close button
-          Align(
-            alignment: Alignment.topRight,
-            child: Semantics(
-              label: 'Deselect conversation',
-              button: true,
-              child: IconButton(
-                icon: Icon(
-                  Icons.close_rounded,
-                  color: cs.onSurfaceVariant.withValues(alpha: 0.5),
-                ),
-                onPressed: () =>
-                    setState(() => _selectedConversationId = null),
-              ),
-            ),
-          ),
-
-          // Avatar
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              color: isOpen
-                  ? (conversation.isVerified
-                      ? custom.success.withValues(alpha: 0.12)
-                      : cs.primaryContainer)
-                  : cs.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Center(
-              child: Text(
-                conversation.firstOtherParticipantName?.isNotEmpty == true
-                    ? conversation.firstOtherParticipantName![0].toUpperCase()
-                    : '?',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: isOpen
-                          ? (conversation.isVerified
-                              ? custom.success
-                              : cs.onPrimaryContainer)
-                          : cs.onSurfaceVariant,
-                    ),
-              ),
-            ),
-          ),
-          const SizedBox(height: HushSpacing.lg),
-
-          // Name
-          Text(
-            conversation.displayName,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-          ),
-          const SizedBox(height: HushSpacing.sm),
-
-          // Security status
-          Row(
-            children: [
-              Icon(
-                conversation.isVerified
-                    ? Icons.verified_rounded
-                    : Icons.lock_rounded,
-                size: 16,
-                color: conversation.isVerified
-                    ? custom.success
-                    : cs.onSurfaceVariant,
-              ),
-              const SizedBox(width: HushSpacing.xs),
-              Text(
-                conversation.isVerified ? 'Verified' : 'Private',
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: conversation.isVerified
-                          ? custom.success
-                          : cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: HushSpacing.md),
-
-          // Lifecycle status
-          _DetailRow(
-            icon: Icons.circle_rounded,
-            iconColor: isOpen ? custom.success : cs.onSurfaceVariant,
-            label: conversation.lifecycle.description,
-          ),
-          const SizedBox(height: HushSpacing.sm),
-
-          // Started
-          _DetailRow(
-            icon: Icons.schedule_rounded,
-            iconColor: cs.onSurfaceVariant,
-            label: 'Started ${conversation.relativeTime}',
-          ),
-          if (conversation.completedAt != null) ...[
-            const SizedBox(height: HushSpacing.sm),
-            _DetailRow(
-              icon: Icons.check_circle_outline_rounded,
-              iconColor: cs.onSurfaceVariant,
-              label: 'Completed ${conversation.completedRelativeTime}',
-            ),
-          ],
-          const SizedBox(height: HushSpacing.xl),
-
-          // Action buttons
-          const Divider(),
-          const SizedBox(height: HushSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => context.push('/conversation/${conversation.id}'),
-              icon: const Icon(Icons.open_in_new_rounded, size: 18),
-              label: Text(isOpen ? 'Open Conversation' : 'View Conversation'),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -557,7 +450,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             const SizedBox(height: HushSpacing.lg),
             Text(
-              'Select a conversation',
+              'Select a moment',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: cs.onSurfaceVariant.withValues(alpha: 0.5),
                     fontWeight: FontWeight.w500,
@@ -565,7 +458,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             const SizedBox(height: HushSpacing.sm),
             Text(
-              'Your conversations will appear here.',
+              'Your moments will appear here.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant.withValues(alpha: 0.3),
                   ),
@@ -576,66 +469,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildEmptySection(ColorScheme cs, String title, String? subtitle) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: HushSpacing.xs,
-        top: HushSpacing.lg,
-        bottom: HushSpacing.sm,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                title,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: cs.onSurfaceVariant.withValues(alpha: 0.5),
-                    ),
-              ),
-            ],
-          ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: cs.onSurfaceVariant.withValues(alpha: 0.3),
-                  ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String label;
-
-  const _DetailRow({
-    required this.icon,
-    required this.iconColor,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(icon, size: 16, color: iconColor.withValues(alpha: 0.7)),
-        const SizedBox(width: HushSpacing.sm),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: cs.onSurfaceVariant,
-              ),
-        ),
-      ],
-    );
-  }
 }

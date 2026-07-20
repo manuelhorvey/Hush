@@ -23,13 +23,13 @@ enum ConversationLifecycle {
   String get description {
     switch (this) {
       case ConversationLifecycle.active:
-        return 'Conversation active';
+        return 'Moment active';
       case ConversationLifecycle.waiting:
         return 'Waiting for response';
       case ConversationLifecycle.completing:
-        return 'Conversation ending';
+        return 'Moment ending';
       case ConversationLifecycle.closed:
-        return 'Conversation ended';
+        return 'Moment ended';
       case ConversationLifecycle.warning:
         return 'Needs attention';
     }
@@ -104,6 +104,6 @@ class Conversation {
     final name = displayName;
     final lifecycleInfo = lifecycle.description;
     final security = isVerified ? 'Verified.' : 'Private.';
-    return 'Conversation with $name. $security $lifecycleInfo.';
+    return '$name. $security $lifecycleInfo.';
   }
 }

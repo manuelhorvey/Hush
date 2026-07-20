@@ -150,5 +150,107 @@ void main() {
       expect(find.text('Verified'), findsOneWidget);
       expect(find.byIcon(Icons.chat_bubble_rounded), findsNothing);
     });
+
+    testWidgets('renders with isSelected without errors', (tester) async {
+      await tester.pumpWidget(
+        wrapApp(
+          ConversationCard(
+            conversation: activeConv,
+            onTap: () {},
+            isSelected: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ConversationCard), findsOneWidget);
+      expect(find.text('Sarah'), findsOneWidget);
+    });
+
+    testWidgets('selected card has animated container with border', (tester) async {
+      await tester.pumpWidget(
+        wrapApp(
+          ConversationCard(
+            conversation: activeConv,
+            onTap: () {},
+            isSelected: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // The AnimatedContainer decoration should include a border
+      final container = tester.widget<AnimatedContainer>(
+        find.descendant(
+          of: find.byType(ConversationCard),
+          matching: find.byType(AnimatedContainer),
+        ),
+      );
+      final decoration = container.decoration as BoxDecoration;
+      expect(decoration.border, isNotNull);
+      // Border width should be positive
+      expect(decoration.border!.top.width, greaterThan(0));
+      expect(decoration.color, isNotNull);
+    });
+
+    testWidgets('unselected card has transparent border', (tester) async {
+      await tester.pumpWidget(
+        wrapApp(
+          ConversationCard(
+            conversation: activeConv,
+            onTap: () {},
+            isSelected: false,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final container = tester.widget<AnimatedContainer>(
+        find.descendant(
+          of: find.byType(ConversationCard),
+          matching: find.byType(AnimatedContainer),
+        ),
+      );
+      final decoration = container.decoration as BoxDecoration;
+      // Border should be present but transparent
+      expect(decoration.border, isNotNull);
+      expect(decoration.border!.top.width, 0);
+      expect(decoration.color, isNotNull);
+    });
+
+    testWidgets('selected card triggers onTap', (tester) async {
+      bool tapped = false;
+      await tester.pumpWidget(
+        wrapApp(
+          ConversationCard(
+            conversation: activeConv,
+            onTap: () => tapped = true,
+            isSelected: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Sarah'));
+      expect(tapped, isTrue);
+    });
+
+    testWidgets('selected card has accessibility semantics', (tester) async {
+      await tester.pumpWidget(
+        wrapApp(
+          ConversationCard(
+            conversation: activeConv,
+            onTap: () {},
+            isSelected: true,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final semantics = tester.getSemantics(
+        find.byType(ConversationCard),
+      );
+      expect(semantics, isNotNull);
+    });
   });
 }

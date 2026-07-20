@@ -89,24 +89,24 @@ void main() {
         await tester.pumpWidget(createEmptyApp());
         await tester.pump();
 
-        expect(find.text('No conversations yet'), findsOneWidget);
+        expect(find.text('No moments yet'), findsOneWidget);
       });
 
       testWidgets('shows empty description', (tester) async {
         await tester.pumpWidget(createEmptyApp());
         await tester.pump();
 
-        expect(find.textContaining('Start a private conversation'), findsOneWidget);
+        expect(find.textContaining('Start a private moment'), findsOneWidget);
       });
 
       testWidgets('shows New Conversation button in empty state', (tester) async {
         await tester.pumpWidget(createEmptyApp());
         await tester.pump();
 
-        expect(find.text('New Conversation'), findsOneWidget);
+        expect(find.text('Start a Moment'), findsOneWidget);
       });
 
-      testWidgets('empty state has New Conversation button', (tester) async {
+      testWidgets('empty state has Start a Moment button', (tester) async {
         await tester.pumpWidget(createEmptyApp());
         await tester.pump();
 
@@ -129,9 +129,9 @@ void main() {
         await tester.pump();
 
         // Active section should not be present
-        expect(find.text('Active'), findsNothing);
-        // Closed section should not be present
-        expect(find.text('Closed'), findsNothing);
+        expect(find.text('Active Moments'), findsNothing);
+        // Past Moments section should not be present
+        expect(find.text('Past Moments'), findsNothing);
         // Search should not be present in empty-all state
         expect(find.byType(ConversationSearch), findsNothing);
       });

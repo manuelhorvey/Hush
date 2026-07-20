@@ -69,7 +69,7 @@ void main() {
       await tester.pumpWidget(
         wrapApp(
           ConversationSection(
-            title: 'Closed',
+            title: 'Past Moments',
             subtitle: 'Test subtitle',
             conversations: _mockConversations,
             initiallyExpanded: false,

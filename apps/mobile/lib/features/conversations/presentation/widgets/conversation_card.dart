@@ -6,11 +6,13 @@ import '../../models/conversation.dart';
 class ConversationCard extends StatelessWidget {
   final Conversation conversation;
   final VoidCallback onTap;
+  final bool isSelected;
 
   const ConversationCard({
     super.key,
     required this.conversation,
     required this.onTap,
+    this.isSelected = false,
   });
 
   @override
@@ -23,15 +25,36 @@ class ConversationCard extends StatelessWidget {
       label: conversation.accessibilityLabel,
       child: Padding(
         padding: const EdgeInsets.only(bottom: HushSpacing.sm),
-        child: Card(
+        child: AnimatedContainer(
+          duration: HushMotion.normal,
+          curve: HushMotion.standard,
           margin: EdgeInsets.zero,
-          elevation: 0,
-          child: InkWell(
+          decoration: BoxDecoration(
+            color: isSelected
+                ? cs.primaryContainer.withValues(alpha: 0.30)
+                : cs.surfaceContainerLow,
+            borderRadius:
+                BorderRadius.circular(HushSpacing.borderRadiusMd),
+            border: isSelected
+                ? Border.all(
+                    color: cs.primary.withValues(alpha: 0.5),
+                    width: 1.5,
+                  )
+                : Border.all(
+                    color: Colors.transparent,
+                    width: 0,
+                  ),
+          ),
+          child: Material(
+            color: Colors.transparent,
             borderRadius: BorderRadius.circular(HushSpacing.borderRadiusMd),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.all(HushSpacing.lg),
-              child: Row(
+            child: InkWell(
+              borderRadius:
+                  BorderRadius.circular(HushSpacing.borderRadiusMd),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.all(HushSpacing.lg),
+                child: Row(
                 children: [
                   _Avatar(conversation: conversation, cs: cs, custom: custom),
                   const SizedBox(width: HushSpacing.md),
@@ -80,6 +103,7 @@ class ConversationCard extends StatelessWidget {
               ),
             ),
           ),
+              ),
         ),
       ),
     );
