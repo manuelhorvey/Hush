@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../theme/app_spacing.dart';
-import '../../../../theme/app_typography.dart';
 import '../../models/verification_state.dart';
 import 'trust_indicator.dart';
 

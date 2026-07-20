@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../theme/app_colors.dart';
 import '../../../../theme/app_spacing.dart';
-import '../../../../theme/app_typography.dart';
 import '../../models/device_identity.dart';
 
 class DeviceCard extends StatelessWidget {
