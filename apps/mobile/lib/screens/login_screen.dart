@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
-import '../services/auth_service.dart';
-import 'home_screen.dart';
+import 'app_shell.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,9 +13,6 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
-  final _authService = AuthService(
-    api: ApiClient(baseUrl: 'http://$apiHost:8081'),
-  );
   String? _error;
   bool _loading = false;
 
@@ -37,11 +35,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await _authService.login(username);
+      await context.read<AuthProvider>().login(username);
 
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const AppShell()),
       );
     } on ApiException catch (e) {
       setState(() {
@@ -59,9 +57,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Login'),
-      ),
+      appBar: AppBar(title: const Text('Login')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -79,7 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _usernameController,
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  border: const OutlineInputBorder(),
                   errorText: _error,
                 ),
                 textInputAction: TextInputAction.done,

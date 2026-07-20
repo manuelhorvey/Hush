@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/api_client.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/identity_service.dart';
 
 class DevicesScreen extends StatefulWidget {
@@ -11,46 +11,32 @@ class DevicesScreen extends StatefulWidget {
 }
 
 class _DevicesScreenState extends State<DevicesScreen> {
-  final _identity = IdentityService(
-    api: ApiClient(baseUrl: 'http://$apiHost:8082'),
-  );
   List<DeviceInfo>? _devices;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadDevices();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _loadDevices());
   }
 
   Future<void> _loadDevices() async {
-    try {
-      final auth = AuthService(
-        api: ApiClient(baseUrl: 'http://$apiHost:8081'),
-      );
-      final session = await auth.getSession();
-      if (session == null) return;
+    final token = context.read<AuthProvider>().token;
+    if (token == null) return;
 
-      final devices = await _identity.listDevices(session.token);
-      if (mounted) {
-        setState(() {
-          _devices = devices;
-          _error = null;
-        });
-      }
+    try {
+      final identity = context.read<IdentityService>();
+      final devices = await identity.listDevices(token);
+      if (mounted) setState(() => _devices = devices);
     } catch (_) {
-      if (mounted) {
-        setState(() => _error = 'Failed to load devices.');
-      }
+      if (mounted) setState(() => _error = 'Failed to load devices.');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Devices'),
-      ),
+      appBar: AppBar(title: const Text('My Devices')),
       body: _error != null
           ? Center(child: Text(_error!))
           : _devices == null
@@ -59,8 +45,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   ? const Center(child: Text('No devices registered.'))
                   : ListView.builder(
                       itemCount: _devices!.length,
-                      itemBuilder: (context, index) {
-                        final device = _devices![index];
+                      itemBuilder: (context, i) {
+                        final device = _devices![i];
                         return ListTile(
                           leading: const Icon(Icons.devices),
                           title: Text(device.deviceName),

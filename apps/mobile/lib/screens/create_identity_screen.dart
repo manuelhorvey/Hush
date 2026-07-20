@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
-import '../services/auth_service.dart';
 import '../services/crypto_service.dart';
 import '../services/identity_service.dart';
-import 'home_screen.dart';
+import 'app_shell.dart';
 
 class CreateIdentityScreen extends StatefulWidget {
   const CreateIdentityScreen({super.key});
@@ -14,13 +15,6 @@ class CreateIdentityScreen extends StatefulWidget {
 
 class _CreateIdentityScreenState extends State<CreateIdentityScreen> {
   final _usernameController = TextEditingController();
-  final _authService = AuthService(
-    api: ApiClient(baseUrl: 'http://$apiHost:8081'),
-  );
-  final _identityService = IdentityService(
-    api: ApiClient(baseUrl: 'http://$apiHost:8082'),
-  );
-  final _crypto = CryptoService();
   String? _error;
   bool _loading = false;
 
@@ -43,21 +37,24 @@ class _CreateIdentityScreenState extends State<CreateIdentityScreen> {
     });
 
     try {
-      final publicKey = await _crypto.getPublicKeyHex();
-      final session = await _authService.register(username, publicKey);
+      final crypto = context.read<CryptoService>();
+      final identity = context.read<IdentityService>();
+      final auth = context.read<AuthProvider>();
 
-      await _identityService.registerDevice(
+      final publicKey = await crypto.getPublicKeyHex();
+      final session = await auth.register(username, publicKey);
+
+      final x25519PubKey = await crypto.getX25519PublicKeyBase64();
+      await identity.registerDevice(
         session.token,
         'Default Device',
         publicKey,
       );
-
-      final x25519PubKey = await _crypto.getX25519PublicKeyBase64();
-      await _identityService.storeExchangeKey(session.token, x25519PubKey);
+      await identity.storeExchangeKey(session.token, x25519PubKey);
 
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => const AppShell()),
       );
     } on ApiException catch (e) {
       setState(() {
@@ -75,9 +72,7 @@ class _CreateIdentityScreenState extends State<CreateIdentityScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Identity'),
-      ),
+      appBar: AppBar(title: const Text('Create Identity')),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -95,7 +90,6 @@ class _CreateIdentityScreenState extends State<CreateIdentityScreen> {
                 controller: _usernameController,
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  border: const OutlineInputBorder(),
                   errorText: _error,
                 ),
                 textInputAction: TextInputAction.done,

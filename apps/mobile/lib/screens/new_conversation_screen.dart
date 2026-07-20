@@ -1,11 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../services/api_client.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/conversations_provider.dart';
 import '../services/crypto_service.dart';
 import '../services/identity_service.dart';
 import '../services/messaging_service.dart';
-import 'chat_screen.dart';
+import 'conversation_screen.dart';
 
 class NewConversationScreen extends StatefulWidget {
   const NewConversationScreen({super.key});
@@ -16,13 +17,6 @@ class NewConversationScreen extends StatefulWidget {
 
 class _NewConversationScreenState extends State<NewConversationScreen> {
   final _searchController = TextEditingController();
-  final _messaging = MessagingService(
-    api: ApiClient(baseUrl: 'http://$apiHost:8083'),
-  );
-  final _identity = IdentityService(
-    api: ApiClient(baseUrl: 'http://$apiHost:8082'),
-  );
-  final _crypto = CryptoService();
 
   List<UserInfo> _results = [];
   final Set<String> _selectedIds = {};
@@ -33,7 +27,9 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
   @override
   void initState() {
     super.initState();
-    _loadToken();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _token = context.read<AuthProvider>().token;
+    });
     _searchController.addListener(_onSearchChanged);
   }
 
@@ -42,14 +38,6 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
     _debounce?.cancel();
     _searchController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadToken() async {
-    final auth = AuthService(
-      api: ApiClient(baseUrl: 'http://$apiHost:8081'),
-    );
-    final session = await auth.getSession();
-    if (mounted) setState(() => _token = session?.token);
   }
 
   Timer? _debounce;
@@ -68,7 +56,8 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
     if (_token == null) return;
     setState(() => _loading = true);
     try {
-      final users = await _messaging.searchUsers(_token!, query);
+      final messaging = context.read<MessagingService>();
+      final users = await messaging.searchUsers(_token!, query);
       if (mounted) setState(() => _results = users);
     } catch (e) {
       if (mounted) {
@@ -85,21 +74,23 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
     setState(() => _creating = true);
 
     try {
-      final participantIds = _selectedIds.toList();
+      final crypto = context.read<CryptoService>();
+      final identity = context.read<IdentityService>();
+      final convs = context.read<ConversationsProvider>();
 
-      final groupKey = _crypto.generateGroupKey();
+      final participantIds = _selectedIds.toList();
+      final groupKey = crypto.generateGroupKey();
 
       final encryptedKeys = <String, String>{};
       for (final pid in participantIds) {
         try {
-          final pubKey = await _identity.getExchangeKey(_token!, pid);
-          final encrypted =
-              await _crypto.encryptGroupKey(groupKey, pubKey);
+          final pubKey = await identity.getExchangeKey(_token!, pid);
+          final encrypted = await crypto.encryptGroupKey(groupKey, pubKey);
           encryptedKeys[pid] = encrypted;
         } catch (_) {}
       }
 
-      final conv = await _messaging.createConversation(
+      final conv = await convs.create(
         _token!,
         participantIds,
         encryptedKeys: encryptedKeys,
@@ -108,7 +99,7 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
       if (!mounted) return;
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => ChatScreen(
+          builder: (_) => ConversationScreen(
             conversationId: conv.id,
             participants: conv.participants,
           ),
@@ -128,7 +119,6 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('New Conversation'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           if (_selectedIds.isNotEmpty)
             TextButton.icon(
@@ -160,12 +150,9 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
             padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: 'Search by username',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                prefixIcon: Icon(Icons.search),
               ),
               autofocus: true,
             ),
@@ -192,7 +179,8 @@ class _NewConversationScreenState extends State<NewConversationScreen> {
                           selected
                               ? Icons.check_circle
                               : Icons.radio_button_unchecked,
-                          color: selected ? Colors.green : Colors.grey,
+                          color:
+                              selected ? Colors.green : Colors.grey,
                         ),
                         onTap: () {
                           setState(() {

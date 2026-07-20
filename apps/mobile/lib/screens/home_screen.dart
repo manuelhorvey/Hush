@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import '../services/api_client.dart';
-import '../services/auth_service.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../providers/conversations_provider.dart';
 import '../services/messaging_service.dart';
-import 'chat_screen.dart';
-import 'devices_screen.dart';
+import '../theme/app_spacing.dart';
+import '../widgets/conversation_card.dart';
+import '../widgets/empty_state.dart';
+import 'conversation_screen.dart';
 import 'new_conversation_screen.dart';
-import 'welcome_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,178 +17,122 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  String? _username;
-  String? _myUserId;
-  String? _token;
-  List<ConversationInfo> _conversations = [];
-  bool _loading = true;
+  final _searchController = TextEditingController();
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
-  Future<void> _loadData() async {
-    final auth = AuthService(
-      api: ApiClient(baseUrl: 'http://$apiHost:8081'),
-    );
-    final session = await auth.getSession();
-    if (session != null && mounted) {
-      setState(() {
-        _username = session.username;
-        _myUserId = session.userId;
-        _token = session.token;
-      });
-      _loadConversations(session.token);
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final token = context.read<AuthProvider>().token;
+    if (token != null) {
+      context.read<ConversationsProvider>().load(token);
     }
   }
 
-  String _conversationTitle(ConversationInfo conv) {
+  String _conversationTitle(ConversationInfo conv, String? myUserId) {
     final others = conv.participants
-        .where((p) => p.userId != _myUserId)
+        .where((p) => p.userId != myUserId)
         .map((p) => p.username)
         .toList();
-    if (others.isEmpty) return 'Chat';
     if (others.length == 1) return others.first;
     return '${others.first} +${others.length - 1}';
-  }
-
-  Future<void> _loadConversations(String token) async {
-    final messaging = MessagingService(
-      api: ApiClient(baseUrl: 'http://$apiHost:8083'),
-    );
-    try {
-      final convs = await messaging.listConversations(token);
-      if (mounted) setState(() => _conversations = convs);
-    } catch (_) {
-      // ignore
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _logout() async {
-    final auth = AuthService(
-      api: ApiClient(baseUrl: 'http://$apiHost:8081'),
-    );
-    await auth.clearSession();
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const WelcomeScreen()),
-    );
   }
 
   Future<void> _openConversation(ConversationInfo conv) async {
     final destroyed = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder: (_) => ChatScreen(
+        builder: (_) => ConversationScreen(
           conversationId: conv.id,
           participants: conv.participants,
         ),
       ),
     );
+    if (destroyed == true) _load();
+  }
 
-    if (destroyed == true && _token != null) {
-      _loadConversations(_token!);
-    }
+  List<ConversationInfo> _filtered(List<ConversationInfo> convs) {
+    if (_searchQuery.isEmpty) return convs;
+    final q = _searchQuery.toLowerCase();
+    return convs.where((c) {
+      final title = _conversationTitle(c, context.read<AuthProvider>().userId);
+      return title.toLowerCase().contains(q);
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_username != null ? 'Hush — $_username' : 'Hush'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.devices),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const DevicesScreen()),
-              );
-            },
-            tooltip: 'My Devices',
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => const NewConversationScreen(),
+    return Consumer2<AuthProvider, ConversationsProvider>(
+      builder: (context, auth, convs, _) {
+        final myUserId = auth.userId;
+        return Scaffold(
+          appBar: AppBar(
+            title: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _searchQuery = v),
+              decoration: InputDecoration(
+                hintText: 'Search conversations...',
+                border: InputBorder.none,
+                hintStyle: Theme.of(context)
+                    .textTheme
+                    .bodyLarge
+                    ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+              ),
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
-          );
-          if (_token != null) _loadConversations(_token!);
-        },
-        child: const Icon(Icons.add),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _conversations.isEmpty
-              ? const Center(child: Text('No conversations yet.'))
-              : RefreshIndicator(
-                  onRefresh: () async {
-                    if (_token != null) await _loadConversations(_token!);
-                  },
-                  child: ListView.separated(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: _conversations.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, i) {
-                      final conv = _conversations[i];
-                      return ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: conv.isActive
-                              ? Colors.green.shade100
-                              : Colors.grey.shade200,
-                          child: Icon(
-                            conv.isActive
-                                ? Icons.chat
-                                : Icons.check_circle_outline,
-                            color: conv.isActive ? Colors.green : Colors.grey,
-                          ),
-                        ),
-                        title: Text(
-                            _conversationTitle(conv)),
-                        subtitle: Row(
-                          children: [
-                            Text(conv.createdAt.substring(0, 10)),
-                            const SizedBox(width: 8),
-                            _statusChip(conv.status),
-                          ],
-                        ),
-                        trailing: const Icon(Icons.arrow_forward_ios,
-                            size: 16),
-                        onTap: () => _openConversation(conv),
-                      );
-                    },
-                  ),
+          ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const NewConversationScreen(),
                 ),
-    );
-  }
-
-  Widget _statusChip(String status) {
-    final (label, color) = switch (status) {
-      'completed' => ('Completed', Colors.grey),
-      'destroyed' => ('Destroyed', Colors.red),
-      _ => ('Active', Colors.green),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.w600),
-      ),
+              );
+              _load();
+            },
+            child: const Icon(Icons.add),
+          ),
+          body: convs.loading
+              ? const Center(child: CircularProgressIndicator())
+              : convs.conversations.isEmpty
+                  ? EmptyState(
+                      icon: Icons.chat_bubble_outline,
+                      title: 'No conversations yet',
+                      subtitle: 'Tap + to start a secure conversation',
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _load,
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(
+                          HushSpacing.lg,
+                          HushSpacing.md,
+                          HushSpacing.lg,
+                          HushSpacing.xxl + 56,
+                        ),
+                        itemCount: _filtered(convs.conversations).length,
+                        itemBuilder: (context, i) {
+                          final conv = _filtered(convs.conversations)[i];
+                          return ConversationCard(
+                            title: _conversationTitle(conv, myUserId),
+                            isActive: conv.isActive,
+                            status: conv.status,
+                            date: conv.createdAt.substring(0, 10),
+                            onTap: () => _openConversation(conv),
+                          );
+                        },
+                      ),
+                    ),
+        );
+      },
     );
   }
 }

@@ -2,40 +2,35 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
-import '../services/auth_service.dart';
 import '../services/crypto_service.dart';
 import '../services/identity_service.dart';
 import '../services/messaging_service.dart';
+import '../widgets/lifecycle_banner.dart';
+import '../widgets/message_bubble.dart';
+import '../widgets/security_badge.dart';
 
-class ChatScreen extends StatefulWidget {
+class ConversationScreen extends StatefulWidget {
   final String conversationId;
   final List<ParticipantInfo> participants;
 
-  const ChatScreen({
+  const ConversationScreen({
     super.key,
     required this.conversationId,
     required this.participants,
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ConversationScreen> createState() => _ConversationScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ConversationScreenState extends State<ConversationScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  final _messaging = MessagingService(
-    api: ApiClient(baseUrl: 'http://$apiHost:8083'),
-  );
-  final _identity = IdentityService(
-    api: ApiClient(baseUrl: 'http://$apiHost:8082'),
-  );
-  final _crypto = CryptoService();
 
   List<MessageInfo> _messages = [];
-  String? _token;
-  String? _myUserId;
   bool _loading = true;
   bool _connected = false;
   bool _isActive = true;
@@ -43,11 +38,13 @@ class _ChatScreenState extends State<ChatScreen> {
   List<int>? _groupKey;
   WebSocket? _ws;
   Timer? _reconnectTimer;
+  String? _token;
+  String? _myUserId;
 
   @override
   void initState() {
     super.initState();
-    _loadSession();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
   @override
@@ -59,37 +56,34 @@ class _ChatScreenState extends State<ChatScreen> {
     super.dispose();
   }
 
+  Future<void> _init() async {
+    final auth = context.read<AuthProvider>();
+    _token = auth.token;
+    _myUserId = auth.userId;
+
+    await _loadGroupKey();
+    await _loadMessages();
+    if (_token != null) _connectWs(_token!);
+  }
+
   String get _chatTitle {
     final others = widget.participants
         .where((p) => p.userId != _myUserId)
         .map((p) => p.username)
         .toList();
-    if (others.isEmpty) return 'Chat';
     if (others.length == 1) return others.first;
     return '${others.first} +${others.length - 1}';
-  }
-
-  Future<void> _loadSession() async {
-    final auth = AuthService(
-      api: ApiClient(baseUrl: 'http://$apiHost:8081'),
-    );
-    final session = await auth.getSession();
-    if (session != null && mounted) {
-      setState(() {
-        _token = session.token;
-        _myUserId = session.userId;
-      });
-      await _loadGroupKey();
-      await _loadMessages();
-      _connectWs(session.token);
-    }
   }
 
   Future<void> _loadGroupKey() async {
     if (_token == null) return;
     try {
+      final messaging = context.read<MessagingService>();
+      final identity = context.read<IdentityService>();
+      final crypto = context.read<CryptoService>();
+
       final encryptedKey =
-          await _messaging.getGroupKey(_token!, widget.conversationId);
+          await messaging.getGroupKey(_token!, widget.conversationId);
 
       final creatorId = widget.participants
           .where((p) => p.userId != _myUserId)
@@ -98,9 +92,9 @@ class _ChatScreenState extends State<ChatScreen> {
       if (creatorId == null) return;
 
       final creatorPubKey =
-          await _identity.getExchangeKey(_token!, creatorId);
+          await identity.getExchangeKey(_token!, creatorId);
       final groupKey =
-          await _crypto.decryptGroupKey(encryptedKey, creatorPubKey);
+          await crypto.decryptGroupKey(encryptedKey, creatorPubKey);
       if (mounted) setState(() => _groupKey = groupKey);
     } catch (_) {}
   }
@@ -158,8 +152,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadMessages() async {
     if (_token == null) return;
     try {
+      final messaging = context.read<MessagingService>();
       final messages =
-          await _messaging.listMessages(_token!, widget.conversationId);
+          await messaging.listMessages(_token!, widget.conversationId);
       if (mounted) {
         setState(() {
           _messages = messages;
@@ -191,10 +186,13 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.clear();
 
     try {
+      final crypto = context.read<CryptoService>();
+      final messaging = context.read<MessagingService>();
+
       final sharedSecret = _groupKey!;
       final ciphertext =
-          await _crypto.encryptWithSharedKey(text, sharedSecret);
-      await _messaging.sendMessage(_token!, widget.conversationId, ciphertext);
+          await crypto.encryptWithSharedKey(text, sharedSecret);
+      await messaging.sendMessage(_token!, widget.conversationId, ciphertext);
       await _loadMessages();
     } catch (e) {
       if (mounted) {
@@ -207,7 +205,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<String> _decrypt(String ciphertext) async {
     if (_groupKey == null) return '[encrypted]';
     try {
-      return await _crypto.decryptWithSharedKey(ciphertext, _groupKey!);
+      final crypto = context.read<CryptoService>();
+      return await crypto.decryptWithSharedKey(ciphertext, _groupKey!);
     } catch (_) {
       return '[encrypted]';
     }
@@ -216,8 +215,9 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _completeConversation() async {
     if (_token == null) return;
     try {
+      final messaging = context.read<MessagingService>();
       final conv =
-          await _messaging.completeConversation(_token!, widget.conversationId);
+          await messaging.completeConversation(_token!, widget.conversationId);
       if (mounted) {
         setState(() {
           _status = conv.status;
@@ -234,6 +234,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _destroyConversation() async {
     if (_token == null) return;
+    final messaging = context.read<MessagingService>();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -257,7 +258,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (confirmed != true) return;
 
     try {
-      await _messaging.destroyConversation(_token!, widget.conversationId);
+      await messaging.destroyConversation(_token!, widget.conversationId);
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
       if (mounted) {
@@ -274,12 +275,15 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Flexible(child: Text(_chatTitle, overflow: TextOverflow.ellipsis)),
+            Flexible(
+                child: Text(_chatTitle,
+                    overflow: TextOverflow.ellipsis)),
             const SizedBox(width: 8),
             _statusIcon(),
+            const SizedBox(width: 4),
+            SecurityBadge(isVerified: false),
           ],
         ),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           if (_isActive)
             IconButton(
@@ -307,7 +311,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   value: 'destroy',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_forever, color: Colors.red, size: 20),
+                      Icon(Icons.delete_forever,
+                          color: Colors.red, size: 20),
                       SizedBox(width: 8),
                       Text('Destroy'),
                     ],
@@ -326,6 +331,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          LifecycleBanner(status: _status),
           Expanded(
             child: _loading
                 ? const Center(child: CircularProgressIndicator())
@@ -346,60 +352,13 @@ class _ChatScreenState extends State<ChatScreen> {
                             future: _decrypt(msg.ciphertext),
                             builder: (context, snapshot) {
                               final text = snapshot.data ?? '[encrypted]';
-                              return Column(
-                                crossAxisAlignment: isMe
-                                    ? CrossAxisAlignment.end
-                                    : CrossAxisAlignment.start,
-                                children: [
-                                  if (!isMe && sender != null)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                          left: 12, bottom: 2),
-                                      child: Text(
-                                        sender.username,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary,
-                                        ),
-                                      ),
-                                    ),
-                                  Align(
-                                    alignment: isMe
-                                        ? Alignment.centerRight
-                                        : Alignment.centerLeft,
-                                    child: Container(
-                                      margin: const EdgeInsets.symmetric(
-                                          vertical: 2),
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 10),
-                                      constraints:
-                                          BoxConstraints(maxWidth: 280),
-                                      decoration: BoxDecoration(
-                                        color: isMe
-                                            ? Theme.of(context)
-                                                .colorScheme
-                                                .primaryContainer
-                                            : Theme.of(context)
-                                                .colorScheme
-                                                .surfaceContainerHighest,
-                                        borderRadius: BorderRadius.only(
-                                          topLeft: const Radius.circular(16),
-                                          topRight: const Radius.circular(16),
-                                          bottomLeft: Radius.circular(
-                                              isMe ? 16 : 4),
-                                          bottomRight: Radius.circular(
-                                              isMe ? 4 : 16),
-                                        ),
-                                      ),
-                                      child: Text(
-                                        text,
-                                        style: const TextStyle(fontSize: 16),
-                                      ),
-                                    ),
-                                  ),
-                                ],
+                              return MessageBubble(
+                                text: text,
+                                isMe: isMe,
+                                senderName: isMe ? null : sender?.username,
+                                timestamp: msg.createdAt.length >= 16
+                                    ? msg.createdAt.substring(11, 16)
+                                    : '',
                               );
                             },
                           );
@@ -407,16 +366,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
           ),
           Container(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
+            color: Theme.of(context).colorScheme.surface,
             padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             child: SafeArea(
@@ -429,9 +379,6 @@ class _ChatScreenState extends State<ChatScreen> {
                         hintText: _isActive
                             ? 'Type a message...'
                             : 'Conversation $_status',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                        ),
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 12),
                       ),
@@ -466,9 +413,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     leading: CircleAvatar(
                         child: Text(p.username[0].toUpperCase())),
                     title: Text(p.username),
-                    subtitle: p.userId == _myUserId
-                        ? const Text('You')
-                        : null,
+                    subtitle:
+                        p.userId == _myUserId ? const Text('You') : null,
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                   ))
