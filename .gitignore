@@ -39,3 +39,6 @@ pubspec.lock
 # Temporary files
 tmp/
 temp/
+
+# Agents
+.agents
