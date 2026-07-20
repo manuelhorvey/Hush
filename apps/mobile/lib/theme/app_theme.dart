@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 import 'app_typography.dart';
 import 'app_spacing.dart';
+import '../core/design_system/theme/hush_theme_extensions.dart';
 
 class HushTheme {
   HushTheme._();
@@ -172,6 +173,7 @@ class HushTheme {
                 BorderRadius.circular(HushSpacing.borderRadiusLg),
           ),
         ),
+        extensions: const [HushCustomColors.light],
       );
 
   static ThemeData get dark => ThemeData(
@@ -343,5 +345,6 @@ class HushTheme {
                 BorderRadius.circular(HushSpacing.borderRadiusLg),
           ),
         ),
+        extensions: const [HushCustomColors.dark],
       );
 }

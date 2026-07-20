@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart' as p;
+import 'core/providers/auth_state_provider.dart';
+import 'core/providers/conversations_state_provider.dart';
+import 'core/router/app_router.dart';
 import 'features/identity/providers/identity_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/connectivity_provider.dart';
@@ -10,7 +14,6 @@ import 'services/crypto_service.dart';
 import 'services/identity_service.dart';
 import 'services/messaging_service.dart';
 import 'theme/app_theme.dart';
-import 'screens/splash_screen.dart';
 
 class HushApp extends StatelessWidget {
   const HushApp({super.key});
@@ -26,35 +29,50 @@ class HushApp extends StatelessWidget {
     final identityService = IdentityService(api: apiIdentity);
     final messagingService = MessagingService(api: apiMessaging);
 
-    return MultiProvider(
-      providers: [
-        Provider<CryptoService>.value(value: cryptoService),
-        Provider<IdentityService>.value(value: identityService),
-        Provider<MessagingService>.value(value: messagingService),
-        ChangeNotifierProvider<AuthProvider>(
-          create: (_) => AuthProvider(auth: authService),
-        ),
-        ChangeNotifierProvider<ConversationsProvider>(
-          create: (_) => ConversationsProvider(messaging: messagingService),
-        ),
-        ChangeNotifierProvider<ConnectivityProvider>(
-          create: (_) => ConnectivityProvider(),
-        ),
-        ChangeNotifierProvider<IdentityProvider>(
-          create: (_) => IdentityProvider(
-            identity: identityService,
-            crypto: cryptoService,
-          ),
-        ),
+    return ProviderScope(
+      overrides: [
+        authServiceProvider.overrideWithValue(authService),
+        messagingServiceProvider.overrideWithValue(messagingService),
       ],
-      child: MaterialApp(
-        title: 'Hush',
-        debugShowCheckedModeBanner: false,
-        theme: HushTheme.light,
-        darkTheme: HushTheme.dark,
-        themeMode: ThemeMode.system,
-        home: const SplashScreen(),
+      child: p.MultiProvider(
+        providers: [
+          p.Provider<CryptoService>.value(value: cryptoService),
+          p.Provider<IdentityService>.value(value: identityService),
+          p.Provider<MessagingService>.value(value: messagingService),
+          p.ChangeNotifierProvider<AuthProvider>(
+            create: (_) => AuthProvider(auth: authService),
+          ),
+          p.ChangeNotifierProvider<ConversationsProvider>(
+            create: (_) => ConversationsProvider(messaging: messagingService),
+          ),
+          p.ChangeNotifierProvider<ConnectivityProvider>(
+            create: (_) => ConnectivityProvider(),
+          ),
+          p.ChangeNotifierProvider<IdentityProvider>(
+            create: (_) => IdentityProvider(
+              identity: identityService,
+              crypto: cryptoService,
+            ),
+          ),
+        ],
+        child: _RouterWidget(),
       ),
+    );
+  }
+}
+
+class _RouterWidget extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+
+    return MaterialApp.router(
+      title: 'Hush',
+      debugShowCheckedModeBanner: false,
+      theme: HushTheme.light,
+      darkTheme: HushTheme.dark,
+      themeMode: ThemeMode.system,
+      routerConfig: router,
     );
   }
 }

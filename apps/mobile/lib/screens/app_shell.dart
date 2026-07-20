@@ -1,24 +1,11 @@
 import 'package:flutter/material.dart';
-import '../features/identity/presentation/screens/identity_profile_screen.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/connectivity_banner.dart';
-import 'home_screen.dart';
-import 'settings_screen.dart';
 
-class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+class AppShell extends StatelessWidget {
+  final Widget child;
 
-  @override
-  State<AppShell> createState() => _AppShellState();
-}
-
-class _AppShellState extends State<AppShell> {
-  int _selectedIndex = 0;
-
-  static const _screens = <Widget>[
-    HomeScreen(),
-    IdentityProfileScreen(),
-    SettingsScreen(),
-  ];
+  const AppShell({super.key, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -29,12 +16,7 @@ class _AppShellState extends State<AppShell> {
       body: Column(
         children: [
           const ConnectivityBanner(),
-          Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: _screens,
-            ),
-          ),
+          Expanded(child: child),
         ],
       ),
       bottomNavigationBar: Container(
@@ -46,8 +28,8 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
         child: NavigationBar(
-          selectedIndex: _selectedIndex,
-          onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+          selectedIndex: _currentIndex(context),
+          onDestinationSelected: (i) => _onTap(context, i),
           backgroundColor: cs.surface,
           indicatorColor: cs.primaryContainer,
           destinations: [
@@ -70,5 +52,24 @@ class _AppShellState extends State<AppShell> {
         ),
       ),
     );
+  }
+
+  int _currentIndex(BuildContext context) {
+    final location = GoRouterState.of(context).uri.path;
+    if (location.startsWith('/chats')) return 0;
+    if (location.startsWith('/identity')) return 1;
+    if (location.startsWith('/settings')) return 2;
+    return 0;
+  }
+
+  void _onTap(BuildContext context, int index) {
+    switch (index) {
+      case 0:
+        context.go('/chats');
+      case 1:
+        context.go('/identity');
+      case 2:
+        context.go('/settings');
+    }
   }
 }
