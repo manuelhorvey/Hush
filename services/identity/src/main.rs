@@ -27,7 +27,7 @@ async fn main() -> anyhow::Result<()> {
             post(routes::store_exchange_key),
         )
         .route(
-            "/api/v1/identity/keys/exchange/:user_id",
+            "/api/v1/identity/keys/exchange/{user_id}",
             get(routes::get_exchange_key),
         )
         .layer(TraceLayer::new_for_http())

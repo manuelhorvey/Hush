@@ -27,27 +27,27 @@ async fn main() -> anyhow::Result<()> {
         .route("/api/v1/conversations", post(routes::create_conversation))
         .route("/api/v1/conversations", get(routes::list_conversations))
         .route(
-            "/api/v1/conversations/:id/complete",
+            "/api/v1/conversations/{id}/complete",
             patch(routes::complete_conversation),
         )
         .route(
-            "/api/v1/conversations/:id",
+            "/api/v1/conversations/{id}",
             delete(routes::destroy_conversation),
         )
         .route(
-            "/api/v1/conversations/:id/messages",
+            "/api/v1/conversations/{id}/messages",
             post(routes::send_message),
         )
         .route(
-            "/api/v1/conversations/:id/messages",
+            "/api/v1/conversations/{id}/messages",
             get(routes::list_messages),
         )
         .route(
-            "/api/v1/conversations/:id/key",
+            "/api/v1/conversations/{id}/key",
             get(routes::get_conversation_key),
         )
         .route(
-            "/api/v1/conversations/:id/participants",
+            "/api/v1/conversations/{id}/participants",
             get(routes::list_participants),
         )
         .layer(TraceLayer::new_for_http())

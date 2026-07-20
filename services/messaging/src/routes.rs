@@ -228,7 +228,7 @@ pub async fn complete_conversation(
 ) -> Result<Json<ConversationResponse>, (StatusCode, Json<ErrorResponse>)> {
     let user_id = authenticate(&pool, &headers).await?;
 
-    let conv = sqlx::query_as::<_, Conversation>(
+    let _ = sqlx::query_as::<_, Conversation>(
         "SELECT id, creator_id, created_at, status, expires_at FROM conversations WHERE id = $1 AND status = 'active'",
     )
     .bind(conversation_id)
@@ -265,8 +265,21 @@ pub async fn complete_conversation(
             )
         })?;
 
+    let updated = sqlx::query_as::<_, Conversation>(
+        "SELECT id, creator_id, created_at, status, expires_at FROM conversations WHERE id = $1",
+    )
+    .bind(conversation_id)
+    .fetch_one(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse { error: "post-complete fetch failed".into() }),
+        )
+    })?;
+
     Ok(Json(
-        build_conv_response(&pool, &conv, user_id).await,
+        build_conv_response(&pool, &updated, user_id).await,
     ))
 }
 
@@ -294,6 +307,28 @@ pub async fn destroy_conversation(
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse { error: "message deletion failed".into() }),
+            )
+        })?;
+
+    sqlx::query("DELETE FROM conversation_keys WHERE conversation_id = $1")
+        .bind(conversation_id)
+        .execute(&pool)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse { error: "key deletion failed".into() }),
+            )
+        })?;
+
+    sqlx::query("DELETE FROM conversation_participants WHERE conversation_id = $1")
+        .bind(conversation_id)
+        .execute(&pool)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse { error: "participant deletion failed".into() }),
             )
         })?;
 
@@ -483,6 +518,32 @@ pub async fn get_conversation_key(
 ) -> Result<Json<EncryptedKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
     let user_id = authenticate(&pool, &headers).await?;
 
+    let status = sqlx::query_scalar::<_, String>(
+        "SELECT status FROM conversations WHERE id = $1",
+    )
+    .bind(conversation_id)
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse { error: "conversation lookup failed".into() }),
+        )
+    })?
+    .ok_or_else(|| {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse { error: "conversation not found".into() }),
+        )
+    })?;
+
+    if status != "active" {
+        return Err((
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse { error: "conversation not active".into() }),
+        ));
+    }
+
     let key = sqlx::query_scalar::<_, String>(
         "SELECT encrypted_key FROM conversation_keys WHERE conversation_id = $1 AND user_id = $2",
     )
@@ -554,6 +615,14 @@ pub async fn expire_conversations(pool: &PgPool) {
     if let Ok(expired) = result {
         for conv in expired {
             let _ = sqlx::query("DELETE FROM messages WHERE conversation_id = $1")
+                .bind(conv.id)
+                .execute(pool)
+                .await;
+            let _ = sqlx::query("DELETE FROM conversation_keys WHERE conversation_id = $1")
+                .bind(conv.id)
+                .execute(pool)
+                .await;
+            let _ = sqlx::query("DELETE FROM conversation_participants WHERE conversation_id = $1")
                 .bind(conv.id)
                 .execute(pool)
                 .await;
