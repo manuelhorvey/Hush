@@ -20,6 +20,7 @@ class ApiException implements Exception {
 class ApiClient {
   final String baseUrl;
   final http.Client _client;
+  Future<String?> Function()? onRefreshToken;
 
   ApiClient({required this.baseUrl, http.Client? client})
       : _client = client ?? http.Client();
@@ -42,7 +43,13 @@ class ApiClient {
       body: jsonEncode(body),
     );
 
-    return _handleResponse(response);
+    return await _handleResponse(response, token: token, requestFn: (t) async {
+      return _client.post(
+        Uri.parse('$baseUrl$path'),
+        headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $t'},
+        body: jsonEncode(body),
+      );
+    });
   }
 
   Future<Map<String, dynamic>> get(String path, {required String token}) async {
@@ -51,7 +58,9 @@ class ApiClient {
       headers: {'Authorization': 'Bearer $token'},
     );
 
-    return _handleResponse(response);
+    return await _handleResponse(response, token: token, requestFn: (t) async {
+      return _client.get(Uri.parse('$baseUrl$path'), headers: {'Authorization': 'Bearer $t'});
+    });
   }
 
   Future<Map<String, dynamic>> patch(
@@ -68,7 +77,16 @@ class ApiClient {
       body: jsonEncode(body),
     );
 
-    return _handleResponse(response);
+    return await _handleResponse(response, token: token, requestFn: (t) async {
+      return _client.patch(
+        Uri.parse('$baseUrl$path'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $t',
+        },
+        body: jsonEncode(body),
+      );
+    });
   }
 
   Future<void> delete(String path, {required String token}) async {
@@ -78,6 +96,18 @@ class ApiClient {
     );
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (response.statusCode == 401 && onRefreshToken != null) {
+        final newToken = await onRefreshToken!();
+        if (newToken != null) {
+          final retry = await _client.delete(
+            Uri.parse('$baseUrl$path'),
+            headers: {'Authorization': 'Bearer $newToken'},
+          );
+          if (retry.statusCode >= 200 && retry.statusCode < 300) return;
+          final body = jsonDecode(retry.body) as Map<String, dynamic>;
+          throw ApiException(retry.statusCode, body['error'] as String? ?? 'Unknown error');
+        }
+      }
       final body = jsonDecode(response.body) as Map<String, dynamic>;
       throw ApiException(
         response.statusCode,
@@ -86,13 +116,29 @@ class ApiClient {
     }
   }
 
-  Map<String, dynamic> _handleResponse(http.Response response) {
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-
+  Future<Map<String, dynamic>> _handleResponse(
+    http.Response response, {
+    String? token,
+    Future<http.Response> Function(String token)? requestFn,
+  }) async {
     if (response.statusCode >= 200 && response.statusCode < 300) {
-      return body;
+      return jsonDecode(response.body) as Map<String, dynamic>;
     }
 
+    if (response.statusCode == 401 &&
+        onRefreshToken != null &&
+        requestFn != null &&
+        token != null) {
+      final newToken = await onRefreshToken!();
+      if (newToken != null) {
+        final retryResponse = await requestFn(newToken);
+        if (retryResponse.statusCode >= 200 && retryResponse.statusCode < 300) {
+          return jsonDecode(retryResponse.body) as Map<String, dynamic>;
+        }
+      }
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
     throw ApiException(
       response.statusCode,
       body['error'] as String? ?? 'Unknown error',

@@ -24,8 +24,11 @@ class AuthService {
         _storage = storage ?? const FlutterSecureStorage();
 
   static const _tokenKey = 'session_token';
+  static const _refreshTokenKey = 'refresh_token';
   static const _userIdKey = 'user_id';
   static const _usernameKey = 'username';
+
+  Future<String?> get token async => _storage.read(key: _tokenKey);
 
   Future<SessionInfo> register(String username, String publicKey) async {
     final data = await _api.post('/api/v1/auth/register', {
@@ -37,6 +40,9 @@ class AuthService {
     final userId = data['user_id'] as String;
 
     await _storeSession(token, userId, username);
+    if (data['refresh_token'] != null) {
+      await _storage.write(key: _refreshTokenKey, value: data['refresh_token'] as String);
+    }
 
     return SessionInfo(token: token, userId: userId, username: username);
   }
@@ -50,6 +56,9 @@ class AuthService {
     final userId = data['user_id'] as String;
 
     await _storeSession(token, userId, username);
+    if (data['refresh_token'] != null) {
+      await _storage.write(key: _refreshTokenKey, value: data['refresh_token'] as String);
+    }
 
     return SessionInfo(token: token, userId: userId, username: username);
   }
@@ -64,13 +73,40 @@ class AuthService {
       final username = data['username'] as String;
       return SessionInfo(token: token, userId: userId, username: username);
     } catch (_) {
+      final refreshed = await _tryRefresh();
+      if (refreshed != null) return refreshed;
       await clearSession();
+      return null;
+    }
+  }
+
+  Future<String?> refreshToken() async {
+    return _tryRefresh().then((s) => s?.token);
+  }
+
+  Future<SessionInfo?> _tryRefresh() async {
+    final refreshToken = await _storage.read(key: _refreshTokenKey);
+    if (refreshToken == null) return null;
+    try {
+      final data = await _api.post('/api/v1/auth/refresh', {
+        'refresh_token': refreshToken,
+      });
+      final newToken = data['token'] as String;
+      await _storage.write(key: _tokenKey, value: newToken);
+      if (data['refresh_token'] != null) {
+        await _storage.write(key: _refreshTokenKey, value: data['refresh_token'] as String);
+      }
+      final userId = await _storage.read(key: _userIdKey) ?? '';
+      final username = await _storage.read(key: _usernameKey) ?? '';
+      return SessionInfo(token: newToken, userId: userId, username: username);
+    } catch (_) {
       return null;
     }
   }
 
   Future<void> clearSession() async {
     await _storage.delete(key: _tokenKey);
+    await _storage.delete(key: _refreshTokenKey);
     await _storage.delete(key: _userIdKey);
     await _storage.delete(key: _usernameKey);
   }

@@ -32,6 +32,9 @@ class HushApp extends StatelessWidget {
     final apiMessaging = ApiClient(baseUrl: 'http://$apiHost:8083');
 
     final authService = AuthService(api: apiAuth);
+    apiIdentity.onRefreshToken = authService.refreshToken;
+    apiMessaging.onRefreshToken = authService.refreshToken;
+
     final cryptoService = CryptoService();
     final identityService = IdentityService(api: apiIdentity);
     final messagingService = MessagingService(api: apiMessaging);
