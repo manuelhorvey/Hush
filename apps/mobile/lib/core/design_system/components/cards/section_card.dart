@@ -41,7 +41,7 @@ class SectionCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (title != null) title!,
+                    ?title,
                     if (subtitle != null) ...[
                       const SizedBox(height: 2),
                       subtitle!,

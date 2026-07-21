@@ -34,7 +34,7 @@ void main() {
       addTearDown(container.dispose);
       final notifier = container.read(connectivityStateProvider.notifier);
       var rebuilds = 0;
-      container.listen(connectivityStateProvider, (_, __) => rebuilds++);
+      container.listen(connectivityStateProvider, (_, _) => rebuilds++);
       notifier.setOnline(false);
       notifier.setOnline(false);
       notifier.setOnline(true);
@@ -71,7 +71,7 @@ void main() {
         MaterialApp(
           home: ProviderScope(
             child: Consumer(
-              builder: (_, ref, __) {
+              builder: (_, ref, _) {
                 return Scaffold(
                   body: Text(ref.read(appLifecycleProvider).name),
                 );

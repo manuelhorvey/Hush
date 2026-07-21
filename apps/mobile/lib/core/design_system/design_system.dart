@@ -4,7 +4,6 @@ export 'animations/animation_utils.dart';
 
 export 'components/buttons/buttons.dart';
 export 'components/cards/section_card.dart';
-export 'components/cards/conversation_card.dart';
 export 'components/cards/hush_card.dart';
 export 'components/inputs/hush_text_field.dart';
 export 'components/dialogs/hush_dialog.dart';

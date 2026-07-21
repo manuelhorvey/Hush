@@ -19,11 +19,9 @@ pub async fn connect(database_url: &str) -> anyhow::Result<PgPool> {
     .execute(&pool)
     .await?;
 
-    sqlx::query(
-        "CREATE INDEX IF NOT EXISTS idx_devices_user_id ON devices(user_id)",
-    )
-    .execute(&pool)
-    .await?;
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_devices_user_id ON devices(user_id)")
+        .execute(&pool)
+        .await?;
 
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS challenges (
@@ -38,17 +36,13 @@ pub async fn connect(database_url: &str) -> anyhow::Result<PgPool> {
     .execute(&pool)
     .await?;
 
-    sqlx::query(
-        "CREATE INDEX IF NOT EXISTS idx_challenges_user_id ON challenges(user_id)",
-    )
-    .execute(&pool)
-    .await?;
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_challenges_user_id ON challenges(user_id)")
+        .execute(&pool)
+        .await?;
 
-    sqlx::query(
-        "CREATE INDEX IF NOT EXISTS idx_challenges_expires ON challenges(expires_at)",
-    )
-    .execute(&pool)
-    .await?;
+    sqlx::query("CREATE INDEX IF NOT EXISTS idx_challenges_expires ON challenges(expires_at)")
+        .execute(&pool)
+        .await?;
 
     sqlx::query(
         "CREATE TABLE IF NOT EXISTS exchange_keys (

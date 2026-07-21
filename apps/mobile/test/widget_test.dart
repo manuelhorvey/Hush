@@ -9,6 +9,6 @@ void main() {
 
     expect(find.text('Welcome to Hush'), findsOneWidget);
     expect(find.text('Create Identity'), findsOneWidget);
-    expect(find.text('Login'), findsOneWidget);
+    expect(find.text('I have an identity'), findsOneWidget);
   });
 }

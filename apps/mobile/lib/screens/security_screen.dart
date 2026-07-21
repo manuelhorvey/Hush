@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import '../core/design_system/components/cards/section_card.dart';
 import '../core/design_system/components/navigation/hush_app_bar.dart';
-import '../core/design_system/theme/hush_theme_extensions.dart';
 import '../theme/app_spacing.dart';
-import '../features/identity/providers/identity_provider.dart';
 
 class SecurityScreen extends StatelessWidget {
   const SecurityScreen({super.key});
@@ -13,8 +10,6 @@ class SecurityScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final identity = context.watch<IdentityProvider>();
-    final phrase = identity.verificationPhrase;
 
     return Scaffold(
       appBar: const HushAppBar(title: 'Security', showBack: true),

@@ -1,12 +1,59 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hush_mobile/core/providers/websocket_service_provider.dart';
+import 'package:hush_mobile/features/conversations/domain/conversation_repository.dart';
+import 'package:hush_mobile/features/conversations/models/conversation.dart';
+import 'package:hush_mobile/features/conversations/presentation/providers/conversation_repository_provider.dart';
 import 'package:hush_mobile/features/conversations/presentation/providers/conversations_provider.dart';
 import 'package:hush_mobile/features/conversations/presentation/screens/home_screen.dart';
 import 'package:hush_mobile/features/conversations/presentation/widgets/conversation_search.dart';
+import 'package:hush_mobile/services/websocket_service.dart';
+
+class _FakeConversationRepository implements ConversationRepository {
+  @override
+  Future<List<Conversation>> listConversations() async => [
+        Conversation(
+          id: 'conv-1',
+          participants: const [
+            ConversationParticipant(id: 'user-2', displayName: 'Test User'),
+          ],
+          createdAt: DateTime.now(),
+        ),
+      ];
+
+  @override
+  Future<Conversation> createConversation({
+    required List<String> participantIds,
+    Map<String, String>? encryptedKeys,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Conversation> completeConversation(String id) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> destroyConversation(String id) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<({String id, String username})>> searchUsers(String query) async {
+    throw UnimplementedError();
+  }
+}
 
 Widget createTestApp() {
   return ProviderScope(
+    overrides: [
+      webSocketServiceProvider.overrideWithValue(WebSocketService()),
+      conversationRepositoryProvider.overrideWithValue(
+        _FakeConversationRepository(),
+      ),
+    ],
     child: const MaterialApp(
       home: HomeScreen(),
     ),
@@ -27,6 +74,10 @@ class _EmptyNotifier extends ConversationsNotifier {
 Widget createEmptyApp() {
   return ProviderScope(
     overrides: [
+      webSocketServiceProvider.overrideWithValue(WebSocketService()),
+      conversationRepositoryProvider.overrideWithValue(
+        _FakeConversationRepository(),
+      ),
       conversationsProvider.overrideWith(() => _EmptyNotifier()),
     ],
     child: const MaterialApp(

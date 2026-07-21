@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../theme/app_spacing.dart';
-import '../theme/hush_theme_extensions.dart';
 
 typedef EmptyState = HushEmptyState;
 

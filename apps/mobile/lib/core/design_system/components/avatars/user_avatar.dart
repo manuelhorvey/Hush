@@ -27,7 +27,7 @@ class UserAvatar extends StatelessWidget {
         ? CircleAvatar(
             radius: size / 2,
             backgroundImage: NetworkImage(photoUrl!),
-            onBackgroundImageError: (_, __) {},
+            onBackgroundImageError: (_, _) {},
           )
         : CircleAvatar(
             radius: size / 2,

@@ -44,6 +44,7 @@ void main() {
       await tester.pumpWidget(_wrap(HushButton(label: 'Submit', onPressed: () {})));
       final semantics = tester.getSemantics(find.byType(FilledButton));
       expect(semantics.label, 'Submit');
+      // ignore: deprecated_member_use
       expect(semantics.getSemanticsData().hasFlag(SemanticsFlag.isEnabled),
           isTrue);
     });

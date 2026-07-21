@@ -27,12 +27,11 @@ class HushCard extends StatelessWidget {
     super.key,
     required String displayName,
     required Widget verificationWidget,
-    VoidCallback? onTap,
+    this.onTap,
   }) : leading = null,
        title = null,
        subtitle = null,
        trailing = null,
-       onTap = onTap,
        padding = null,
        margin = null,
        backgroundColor = null;
@@ -55,7 +54,7 @@ class HushCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (title != null) title!,
+                    ?title,
                     if (subtitle != null) ...[const SizedBox(height: 2), subtitle!],
                   ],
                 ),

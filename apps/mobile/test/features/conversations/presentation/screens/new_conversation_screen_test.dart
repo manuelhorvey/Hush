@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hush_mobile/core/providers/websocket_service_provider.dart';
 import 'package:hush_mobile/features/conversations/models/conversation.dart';
 import 'package:hush_mobile/features/conversations/presentation/providers/conversations_provider.dart';
 import 'package:hush_mobile/features/conversations/presentation/screens/new_conversation_screen.dart';
+import 'package:hush_mobile/services/websocket_service.dart';
 
 class _CreateTestNotifier extends ConversationsNotifier {
   @override
@@ -13,32 +15,40 @@ class _CreateTestNotifier extends ConversationsNotifier {
       );
 
   @override
-  Future<void> load() async {
-    // No-op: already loaded
-  }
+  Future<void> load() async {}
 
   @override
   Future<Conversation> createConversation({
-    required String participantName,
-    required String participantId,
+    required List<String> participantIds,
+    Map<String, String>? encryptedKeys,
   }) async {
     return Conversation(
       id: 'conv-new-1',
-      participants: [
-        ConversationParticipant(
-          id: participantId,
-          displayName: participantName,
-        ),
-      ],
+      participants: participantIds
+          .map((id) => ConversationParticipant(
+                id: id,
+                displayName: id,
+              ))
+          .toList(),
       lifecycle: ConversationLifecycle.active,
       createdAt: DateTime.now(),
     );
+  }
+
+  @override
+  Future<List<({String id, String username})>> searchUsers(
+      String query) async {
+    return [
+      (id: 'user-sarah', username: 'Sarah'),
+      (id: 'user-sam', username: 'Sam'),
+    ];
   }
 }
 
 Widget createTestApp() {
   return ProviderScope(
     overrides: [
+      webSocketServiceProvider.overrideWithValue(WebSocketService()),
       conversationsProvider.overrideWith(() => _CreateTestNotifier()),
     ],
     child: const MaterialApp(
@@ -61,20 +71,49 @@ void main() {
       await tester.pump();
 
       expect(find.text('Start a moment.'), findsOneWidget);
-      // AppBar title also says "Start a Moment" — multiple matches expected
       expect(find.text('Start a Moment'), findsAtLeastNWidgets(1));
     });
 
-    testWidgets('renders name input field', (tester) async {
+    testWidgets('renders search input field', (tester) async {
       await tester.pumpWidget(createTestApp());
       await tester.pump();
 
       expect(find.byType(TextField), findsOneWidget);
-      expect(find.text('e.g. Sarah'), findsOneWidget);
+      expect(find.text('Search by name...'), findsOneWidget);
     });
 
-    testWidgets('shows privacy notice', (tester) async {
+    testWidgets('shows search results after typing', (tester) async {
       await tester.pumpWidget(createTestApp());
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField), 'Sa');
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text('Sarah'), findsOneWidget);
+      expect(find.text('Sam'), findsOneWidget);
+    });
+
+    testWidgets('shows create button after selecting user', (tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField), 'Sa');
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Sarah'));
+      await tester.pump();
+
+      expect(find.text('Start Moment'), findsOneWidget);
+    });
+
+    testWidgets('shows privacy notice after selecting user', (tester) async {
+      await tester.pumpWidget(createTestApp());
+      await tester.pump();
+
+      await tester.enterText(find.byType(TextField), 'Sa');
+      await tester.pump(const Duration(milliseconds: 400));
+
+      await tester.tap(find.text('Sam'));
       await tester.pump();
 
       expect(
@@ -83,23 +122,11 @@ void main() {
       );
     });
 
-    testWidgets('shows create button when name is entered', (tester) async {
+    testWidgets('search field has correct label', (tester) async {
       await tester.pumpWidget(createTestApp());
       await tester.pump();
 
-      // Enter a name
-      await tester.enterText(find.byType(TextField), 'Sarah');
-      await tester.pump();
-
-      // Check button exists with correct label
-      expect(find.text('Start a Moment'), findsAtLeastNWidgets(1));
-    });
-
-    testWidgets('name field has correct label', (tester) async {
-      await tester.pumpWidget(createTestApp());
-      await tester.pump();
-
-      expect(find.text('Name'), findsOneWidget);
+      expect(find.text('Search'), findsOneWidget);
     });
 
     testWidgets('has accessibility semantics', (tester) async {

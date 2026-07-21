@@ -71,7 +71,10 @@ async fn is_participant(pool: &PgPool, conversation_id: Uuid, user_id: Uuid) -> 
         > 0
 }
 
-async fn get_participant_ids(pool: &PgPool, conversation_id: Uuid) -> Result<Vec<Uuid>, sqlx::Error> {
+async fn get_participant_ids(
+    pool: &PgPool,
+    conversation_id: Uuid,
+) -> Result<Vec<Uuid>, sqlx::Error> {
     sqlx::query_scalar::<_, Uuid>(
         "SELECT user_id FROM conversation_participants WHERE conversation_id = $1",
     )
@@ -162,7 +165,9 @@ pub async fn create_conversation(
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse { error: "participant insert failed".into() }),
+                Json(ErrorResponse {
+                    error: "participant insert failed".into(),
+                }),
             )
         })?;
     }
@@ -250,7 +255,9 @@ pub async fn complete_conversation(
     if !is_participant(&pool, conversation_id, user_id).await {
         return Err((
             StatusCode::FORBIDDEN,
-            Json(ErrorResponse { error: "not a participant".into() }),
+            Json(ErrorResponse {
+                error: "not a participant".into(),
+            }),
         ));
     }
 
@@ -261,7 +268,9 @@ pub async fn complete_conversation(
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse { error: "complete failed".into() }),
+                Json(ErrorResponse {
+                    error: "complete failed".into(),
+                }),
             )
         })?;
 
@@ -274,13 +283,13 @@ pub async fn complete_conversation(
     .map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse { error: "post-complete fetch failed".into() }),
+            Json(ErrorResponse {
+                error: "post-complete fetch failed".into(),
+            }),
         )
     })?;
 
-    Ok(Json(
-        build_conv_response(&pool, &updated, user_id).await,
-    ))
+    Ok(Json(build_conv_response(&pool, &updated, user_id).await))
 }
 
 pub async fn destroy_conversation(
@@ -306,7 +315,9 @@ pub async fn destroy_conversation(
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse { error: "message deletion failed".into() }),
+                Json(ErrorResponse {
+                    error: "message deletion failed".into(),
+                }),
             )
         })?;
 
@@ -317,7 +328,9 @@ pub async fn destroy_conversation(
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse { error: "key deletion failed".into() }),
+                Json(ErrorResponse {
+                    error: "key deletion failed".into(),
+                }),
             )
         })?;
 
@@ -328,7 +341,9 @@ pub async fn destroy_conversation(
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse { error: "participant deletion failed".into() }),
+                Json(ErrorResponse {
+                    error: "participant deletion failed".into(),
+                }),
             )
         })?;
 
@@ -339,7 +354,9 @@ pub async fn destroy_conversation(
         .map_err(|_| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse { error: "destroy failed".into() }),
+                Json(ErrorResponse {
+                    error: "destroy failed".into(),
+                }),
             )
         })?;
 
@@ -357,30 +374,32 @@ pub async fn send_message(
     if !is_participant(&pool, conversation_id, user_id).await {
         return Err((
             StatusCode::FORBIDDEN,
-            Json(ErrorResponse { error: "not a participant".into() }),
+            Json(ErrorResponse {
+                error: "not a participant".into(),
+            }),
         ));
     }
 
-    let status = sqlx::query_scalar::<_, String>(
-        "SELECT status FROM conversations WHERE id = $1",
-    )
-    .bind(conversation_id)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse { error: "conversation lookup failed".into() }),
-        )
-    })?
-    .ok_or_else(|| {
-        (
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse {
-                error: "conversation not found".into(),
-            }),
-        )
-    })?;
+    let status = sqlx::query_scalar::<_, String>("SELECT status FROM conversations WHERE id = $1")
+        .bind(conversation_id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "conversation lookup failed".into(),
+                }),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "conversation not found".into(),
+                }),
+            )
+        })?;
 
     if status != "active" {
         return Err((
@@ -419,7 +438,10 @@ pub async fn send_message(
     };
 
     let recipient_ids = match get_participant_ids(&pool, conversation_id).await {
-        Ok(ids) => ids.into_iter().filter(|id| *id != user_id).collect::<Vec<_>>(),
+        Ok(ids) => ids
+            .into_iter()
+            .filter(|id| *id != user_id)
+            .collect::<Vec<_>>(),
         _ => vec![],
     };
 
@@ -518,29 +540,33 @@ pub async fn get_conversation_key(
 ) -> Result<Json<EncryptedKeyResponse>, (StatusCode, Json<ErrorResponse>)> {
     let user_id = authenticate(&pool, &headers).await?;
 
-    let status = sqlx::query_scalar::<_, String>(
-        "SELECT status FROM conversations WHERE id = $1",
-    )
-    .bind(conversation_id)
-    .fetch_optional(&pool)
-    .await
-    .map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse { error: "conversation lookup failed".into() }),
-        )
-    })?
-    .ok_or_else(|| {
-        (
-            StatusCode::NOT_FOUND,
-            Json(ErrorResponse { error: "conversation not found".into() }),
-        )
-    })?;
+    let status = sqlx::query_scalar::<_, String>("SELECT status FROM conversations WHERE id = $1")
+        .bind(conversation_id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "conversation lookup failed".into(),
+                }),
+            )
+        })?
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "conversation not found".into(),
+                }),
+            )
+        })?;
 
     if status != "active" {
         return Err((
             StatusCode::NOT_FOUND,
-            Json(ErrorResponse { error: "conversation not active".into() }),
+            Json(ErrorResponse {
+                error: "conversation not active".into(),
+            }),
         ));
     }
 
@@ -554,13 +580,17 @@ pub async fn get_conversation_key(
     .map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ErrorResponse { error: "key lookup failed".into() }),
+            Json(ErrorResponse {
+                error: "key lookup failed".into(),
+            }),
         )
     })?
     .ok_or_else(|| {
         (
             StatusCode::NOT_FOUND,
-            Json(ErrorResponse { error: "encrypted key not found".into() }),
+            Json(ErrorResponse {
+                error: "encrypted key not found".into(),
+            }),
         )
     })?;
 

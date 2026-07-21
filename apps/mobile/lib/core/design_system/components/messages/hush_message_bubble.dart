@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../theme/hush_tokens.dart';
 import '../../theme/hush_theme_extensions.dart';
-import '../../../responsive/responsive_layout.dart';
 
 enum MessageStatus { normal, sending, delivered, failed }
 

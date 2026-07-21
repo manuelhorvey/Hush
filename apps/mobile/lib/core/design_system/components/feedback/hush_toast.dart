@@ -18,8 +18,7 @@ class HushToast {
       ToastType.warning => (cs.errorContainer, cs.onErrorContainer, Icons.warning_rounded),
     };
 
-    OverlayEntry? entry;
-    entry = OverlayEntry(
+    final entry = OverlayEntry(
       builder: (context) => Positioned(
         top: MediaQuery.of(context).padding.top + 16,
         left: 16,
@@ -51,7 +50,7 @@ class HushToast {
       ),
     );
 
-    Overlay.of(context).insert(entry!);
-    Future.delayed(duration, () => entry?.remove());
+    Overlay.of(context).insert(entry);
+    Future.delayed(duration, entry.remove);
   }
 }
