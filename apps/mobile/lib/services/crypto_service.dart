@@ -70,6 +70,10 @@ class CryptoService {
     return stored;
   }
 
+  Future<SimpleKeyPairData> loadX25519KeyPair() async {
+    return _loadX25519KeyPair();
+  }
+
   Future<SimpleKeyPairData> _loadX25519KeyPair() async {
     final priv = await _storage.read(key: _x25519PrivateKey);
     final pub = await _storage.read(key: _x25519PublicKey);
