@@ -3,8 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../core/design_system/components/buttons/hush_button.dart';
 import '../core/design_system/components/inputs/hush_text_field.dart';
+import '../core/network/network_errors.dart';
 import '../providers/auth_provider.dart';
-import '../services/api_client.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -37,8 +37,8 @@ class _LoginScreenState extends State<LoginScreen> {
       await context.read<AuthProvider>().login(username);
       if (!mounted) return;
       context.go('/chats');
-    } on ApiException catch (e) {
-      setState(() { _error = e.message; _loading = false; });
+    } on NetworkException catch (e) {
+      setState(() { _error = e.userFacingMessage; _loading = false; });
     } catch (_) {
       setState(() {
         _error = 'Connection failed. Check that the server is running.';

@@ -6,6 +6,7 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponseDto> register(
       String username, String publicKey);
   Future<AuthResponseDto> login(String username);
+  Future<AuthResponseDto> getSession();
   Future<RefreshResponseDto> refreshToken(String refreshToken);
 }
 
@@ -30,6 +31,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       ApiEndpoints.login,
       data: LoginRequest(username: username).toJson(),
     );
+    return AuthResponseDto.fromJson(response);
+  }
+
+  @override
+  Future<AuthResponseDto> getSession() async {
+    final response = await _client.get(ApiEndpoints.session);
     return AuthResponseDto.fromJson(response);
   }
 

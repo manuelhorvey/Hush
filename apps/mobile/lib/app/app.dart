@@ -3,18 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart' as p;
 
+import '../../core/config/environment.dart';
+import '../../core/network/api_client.dart';
 import '../../core/providers/auth_state_provider.dart';
 import '../../core/providers/conversations_state_provider.dart';
 import '../../core/providers/crypto_service_provider.dart';
+import '../../core/providers/network_providers.dart';
 import '../../core/providers/theme_mode_provider.dart';
 import '../../core/providers/websocket_service_provider.dart';
+import '../../core/storage/secure_storage.dart';
+import '../../features/auth/data/auth_providers.dart';
+import '../../features/auth/data/datasources/auth_remote_datasource.dart';
+import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/identity/presentation/providers/identity_service_provider.dart';
 import '../../features/identity/providers/identity_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/conversations_provider.dart';
-import '../../services/api_client.dart';
-import '../../services/auth_service.dart';
+import '../../services/api_client.dart' as legacy;
 import '../../services/crypto_service.dart';
 import '../../services/identity_service.dart';
 import '../../services/messaging_service.dart';
@@ -29,13 +35,27 @@ class HushApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final apiAuth = ApiClient(baseUrl: 'http://$apiHost:8081');
-    final apiIdentity = ApiClient(baseUrl: 'http://$apiHost:8082');
-    final apiMessaging = ApiClient(baseUrl: 'http://$apiHost:8083');
+    final apiHost = legacy.apiHost;
+    final apiIdentity = legacy.ApiClient(baseUrl: 'http://$apiHost:8082');
+    final apiMessaging = legacy.ApiClient(baseUrl: 'http://$apiHost:8083');
 
-    final authService = AuthService(api: apiAuth);
-    apiIdentity.onRefreshToken = authService.refreshToken;
-    apiMessaging.onRefreshToken = authService.refreshToken;
+    final storage = SecureStorageService();
+    final authApiClient = ApiClient(
+      config: EnvironmentConfig(
+        environment: AppEnvironment.development,
+        apiBaseUrl: 'http://$apiHost:8081',
+        wsBaseUrl: 'ws://$apiHost:8081',
+        enableLogging: true,
+      ),
+      storage: storage,
+    );
+    final authRemoteDataSource = AuthRemoteDataSourceImpl(client: authApiClient);
+    final authRepository = AuthRepository(
+      remoteDataSource: authRemoteDataSource,
+      storage: storage,
+    );
+    apiIdentity.onRefreshToken = authRepository.refreshToken;
+    apiMessaging.onRefreshToken = authRepository.refreshToken;
 
     final cryptoService = CryptoService();
     final identityService = IdentityService(api: apiIdentity);
@@ -45,7 +65,10 @@ class HushApp extends StatelessWidget {
 
     return ProviderScope(
       overrides: [
-        authServiceProvider.overrideWithValue(authService),
+        secureStorageServiceProvider.overrideWithValue(storage),
+        apiClientProvider.overrideWithValue(authApiClient),
+        authRemoteDataSourceProvider.overrideWithValue(authRemoteDataSource),
+        authRepositoryProvider.overrideWithValue(authRepository),
         messagingServiceProvider.overrideWithValue(messagingService),
         identityServiceProvider.overrideWithValue(identityService),
         cryptoServiceProvider.overrideWithValue(cryptoService),
@@ -57,7 +80,7 @@ class HushApp extends StatelessWidget {
           p.Provider<IdentityService>.value(value: identityService),
           p.Provider<MessagingService>.value(value: messagingService),
           p.ChangeNotifierProvider<AuthProvider>(
-            create: (_) => AuthProvider(auth: authService),
+            create: (_) => AuthProvider(auth: authRepository),
           ),
           p.ChangeNotifierProvider<ConversationsProvider>(
             create: (_) => ConversationsProvider(messaging: messagingService),

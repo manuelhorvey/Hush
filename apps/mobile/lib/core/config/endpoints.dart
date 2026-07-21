@@ -6,6 +6,7 @@ class ApiEndpoints {
   // Auth
   static const String register = '$apiPrefix/auth/register';
   static const String login = '$apiPrefix/auth/login';
+  static const String session = '$apiPrefix/auth/session';
   static const String refreshToken = '$apiPrefix/auth/refresh';
   static const String logout = '$apiPrefix/auth/logout';
 

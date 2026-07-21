@@ -2,14 +2,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hush_mobile/core/providers/auth_state_provider.dart';
 import 'package:hush_mobile/core/routing/app_route.dart';
 import 'package:hush_mobile/core/routing/auth_guard.dart';
-import 'package:hush_mobile/services/auth_service.dart';
 
 void main() {
   group('evaluateAuthRedirect', () {
     const loadingAuth = AuthState(loading: true);
     const unauthenticated = AuthState(loading: false);
-    final authenticated = AuthState(
-      session: SessionInfo(userId: 'u', username: 'u', token: 't'),
+    const authenticated = AuthState(
+      token: 't',
+      userId: 'u',
+      username: 'u',
       loading: false,
     );
 

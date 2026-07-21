@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../services/auth_service.dart';
+import '../features/auth/data/repositories/auth_repository_impl.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final AuthService _auth;
+  final AuthRepository _auth;
 
   SessionInfo? _session;
   bool _loading = true;
@@ -17,27 +17,27 @@ class AuthProvider extends ChangeNotifier {
   bool get loading => _loading;
 
   Future<void> init() async {
-    _session = await _auth.getSession();
+    _session = await _auth.tryRestoreSession();
     _loading = false;
     notifyListeners();
   }
 
   Future<SessionInfo> register(String username, String publicKey) async {
-    final session = await _auth.register(username, publicKey);
+    final session = await _auth.register(username: username, publicKey: publicKey);
     _session = session;
     notifyListeners();
     return session;
   }
 
   Future<SessionInfo> login(String username) async {
-    final session = await _auth.login(username);
+    final session = await _auth.login(username: username);
     _session = session;
     notifyListeners();
     return session;
   }
 
   Future<void> logout() async {
-    await _auth.clearSession();
+    await _auth.logout();
     _session = null;
     notifyListeners();
   }
