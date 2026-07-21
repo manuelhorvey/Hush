@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart' as p;
 
 import '../../core/providers/auth_state_provider.dart';
@@ -17,6 +18,7 @@ import '../../services/auth_service.dart';
 import '../../services/crypto_service.dart';
 import '../../services/identity_service.dart';
 import '../../services/messaging_service.dart';
+import '../../services/notification_service.dart';
 import '../../services/websocket_service.dart';
 import '../../theme/app_theme.dart';
 
@@ -39,6 +41,7 @@ class HushApp extends StatelessWidget {
     final identityService = IdentityService(api: apiIdentity);
     final messagingService = MessagingService(api: apiMessaging);
     final wsService = WebSocketService();
+    final notificationService = NotificationService();
 
     return ProviderScope(
       overrides: [
@@ -69,7 +72,10 @@ class HushApp extends StatelessWidget {
             ),
           ),
         ],
-        child: _AppRoot(wsService: wsService),
+        child: _AppRoot(
+          wsService: wsService,
+          notificationService: notificationService,
+        ),
       ),
     );
   }
@@ -77,8 +83,12 @@ class HushApp extends StatelessWidget {
 
 class _AppRoot extends ConsumerStatefulWidget {
   final WebSocketService wsService;
+  final NotificationService notificationService;
 
-  const _AppRoot({required this.wsService});
+  const _AppRoot({
+    required this.wsService,
+    required this.notificationService,
+  });
 
   @override
   ConsumerState<_AppRoot> createState() => _AppRootState();
@@ -89,10 +99,20 @@ class _AppRootState extends ConsumerState<_AppRoot> {
   void initState() {
     super.initState();
     _initAuth();
+    _initNotifications();
   }
 
   Future<void> _initAuth() async {
     await ref.read(authStateProvider.notifier).init();
+  }
+
+  Future<void> _initNotifications() async {
+    await widget.notificationService.initialize();
+    widget.notificationService.onNotificationTap = (conversationId) {
+      if (conversationId != null && mounted) {
+        context.push('/conversation/$conversationId');
+      }
+    };
   }
 
   @override
