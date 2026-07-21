@@ -72,16 +72,6 @@ class _MobileShell extends StatelessWidget {
               selectedIcon: Icon(Icons.chat_bubble_rounded, color: cs.primary),
               label: 'Moments',
             ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline_rounded),
-              selectedIcon: Icon(Icons.person_rounded, color: cs.primary),
-              label: 'Identity',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.settings_outlined),
-              selectedIcon: Icon(Icons.settings_rounded, color: cs.primary),
-              label: 'Settings',
-            ),
           ],
         ),
       ),
@@ -142,16 +132,6 @@ class _DesktopShell extends StatelessWidget {
                 icon: Icon(Icons.chat_bubble_outline_rounded),
                 selectedIcon: Icon(Icons.chat_bubble_rounded, color: cs.primary),
                 label: const Text('Moments'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.person_outline_rounded),
-                selectedIcon: Icon(Icons.person_rounded, color: cs.primary),
-                label: const Text('Identity'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings_rounded, color: cs.primary),
-                label: const Text('Settings'),
               ),
             ],
           ),

@@ -15,7 +15,6 @@ import '../../screens/privacy_screen.dart';
 import '../../screens/security_screen.dart';
 import '../../screens/settings_screen.dart';
 import '../../features/identity/presentation/screens/identity_create_screen.dart';
-import '../../features/identity/presentation/screens/identity_profile_screen.dart';
 import '../../features/identity/presentation/screens/device_management_screen.dart';
 import '../../features/identity/presentation/screens/verification_screen.dart';
 import '../../core/design_system/components/feedback/error_state.dart';
@@ -60,22 +59,6 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: AppRoute.home,
                 builder: (_, _) => const HomeScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppRoute.identity,
-                builder: (_, _) => const IdentityProfileScreen(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: AppRoute.settings,
-                builder: (_, _) => const SettingsScreen(),
               ),
             ],
           ),
@@ -137,9 +120,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: AppRoute.profile,
+        path: AppRoute.settings,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, _) => const IdentityProfileScreen(),
+        builder: (_, _) => const SettingsScreen(),
       ),
       GoRoute(
         path: AppRoute.privacy,

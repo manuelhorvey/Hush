@@ -6,7 +6,6 @@ abstract final class AppRoute {
   static const String identityCreate = '/identity/create';
 
   static const String home = '/chats';
-  static const String identity = '/identity';
   static const String settings = '/settings';
 
   static const String conversation = '/conversation/:id';
@@ -18,7 +17,6 @@ abstract final class AppRoute {
   static const String verification = '/verification';
   static const String privacy = '/privacy';
   static const String security = '/security';
-  static const String profile = '/profile';
 
   static String conversationWithId(String id) => '/conversation/$id';
   static String conversationCompleteWithId(String id) =>
@@ -34,14 +32,12 @@ abstract final class AppRoute {
 
   static const List<String> protectedRoutes = [
     home,
-    identity,
     settings,
     newConversation,
     devices,
     verification,
     privacy,
     security,
-    profile,
   ];
 
   static bool isAuthRoute(String path) => authRoutes.any(path.startsWith);

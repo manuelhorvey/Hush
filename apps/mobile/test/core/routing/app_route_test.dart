@@ -8,7 +8,6 @@ void main() {
       expect(AppRoute.welcome, '/welcome');
       expect(AppRoute.identityCreate, '/identity/create');
       expect(AppRoute.home, '/chats');
-      expect(AppRoute.identity, '/identity');
       expect(AppRoute.settings, '/settings');
       expect(AppRoute.devices, '/devices');
       expect(AppRoute.verification, '/verification');
@@ -60,8 +59,8 @@ void main() {
         expect(AppRoute.isProtectedRoute('/chats'), isTrue);
       });
 
-      test('returns true for identity', () {
-        expect(AppRoute.isProtectedRoute('/identity'), isTrue);
+      test('returns true for privacy', () {
+        expect(AppRoute.isProtectedRoute('/privacy'), isTrue);
       });
 
       test('returns true for settings', () {

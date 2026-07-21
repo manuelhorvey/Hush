@@ -1,171 +1,268 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
-import '../core/design_system/components/cards/section_card.dart';
-import '../core/design_system/components/navigation/hush_app_bar.dart';
-import '../features/identity/models/verification_state.dart';
-import '../features/identity/presentation/widgets/trust_indicator.dart';
-import '../features/identity/providers/identity_provider.dart';
-import '../providers/auth_provider.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_spacing.dart';
-import 'welcome_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
+import '../core/design_system/components/cards/section_card.dart';
+import '../core/design_system/theme/theme.dart';
+import '../core/providers/auth_state_provider.dart';
+import '../features/identity/models/verification_state.dart';
+import '../features/identity/presentation/providers/identity_notifier.dart';
+import '../features/identity/presentation/widgets/privacy_education_card.dart';
+import '../features/identity/presentation/widgets/security_status_card.dart';
+import '../features/identity/presentation/widgets/trust_indicator.dart';
+
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(identityNotifierProvider.notifier).loadDevices();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return Consumer2<AuthProvider, IdentityProvider>(
-      builder: (context, auth, identity, _) {
-        final state = identity.userIdentity?.verificationState
-            ?? VerificationState.unknown;
-        final displayName = auth.username ?? '...';
+    final identity = ref.watch(identityNotifierProvider);
+    final auth = ref.watch(authStateProvider);
+    final user = identity.user;
+    final displayName = auth.username ?? user?.displayName ?? '...';
+    final state = user?.verificationState ?? VerificationState.unknown;
 
-        return Scaffold(
-          appBar: HushAppBar(title: 'Settings'),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              HushSpacing.lg,
-              HushSpacing.md,
-              HushSpacing.lg,
-              HushSpacing.xxl,
-            ),
-            children: [
-              SectionCard(
-                leading: Semantics(
-                  label: 'Avatar for $displayName',
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: cs.primaryContainer,
-                      borderRadius: BorderRadius.circular(HushSpacing.borderRadiusMd),
-                    ),
-                    child: Center(
-                      child: Text(
-                        displayName.isNotEmpty
-                            ? displayName[0].toUpperCase()
-                            : '?',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: cs.onPrimaryContainer,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                    ),
-                  ),
-                ),
+    return Scaffold(
+      appBar: AppBar(title: const Text('Account')),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(
+          HushSpacing.lg,
+          HushSpacing.md,
+          HushSpacing.lg,
+          HushSpacing.xxl,
+        ),
+        children: [
+          _ProfileHeader(displayName: displayName, state: state),
+          const SizedBox(height: HushSpacing.xl),
+          _SectionHeader(title: 'Security'),
+          const SizedBox(height: HushSpacing.md),
+          SecurityStatusCard.private(),
+          const SizedBox(height: HushSpacing.sm),
+          SecurityStatusCard.verified(),
+          const SizedBox(height: HushSpacing.xl),
+          _SectionHeader(title: 'Devices'),
+          const SizedBox(height: HushSpacing.md),
+          Semantics(
+            label: 'Manage devices',
+            button: true,
+            child: Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: Icon(Icons.devices_rounded, color: cs.primary),
                 title: Text(
-                  displayName,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                  identity.devices.isNotEmpty
+                      ? '${identity.devices.length} ${identity.devices.length == 1 ? 'device' : 'devices'}'
+                      : 'No other devices',
                 ),
-                subtitle: Row(
-                  children: [
-                    TrustIndicator(state: state, size: 10),
-                    const SizedBox(width: 4),
-                    Text(
-                      state.label,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: _stateColor(state),
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                  ],
-                ),
-                onTap: () => context.go('/profile'),
-              ),
-              const SizedBox(height: HushSpacing.xl),
-              SettingsGroup(
-                title: 'Account',
-                items: [
-                  ListTile(
-                    leading: Icon(Icons.devices_rounded, color: cs.primary),
-                    title: const Text('My Devices'),
-                    trailing: Icon(Icons.chevron_right,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
-                    onTap: () => context.go('/devices'),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  ListTile(
-                    leading: Icon(Icons.verified_outlined, color: cs.primary),
-                    title: const Text('Verification'),
-                    trailing: Icon(Icons.chevron_right,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
-                    onTap: () => context.go('/verification'),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  ListTile(
-                    leading: Icon(Icons.privacy_tip_outlined, color: cs.primary),
-                    title: const Text('Privacy'),
-                    trailing: Icon(Icons.chevron_right,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
-                    onTap: () => context.go('/privacy'),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  ListTile(
-                    leading: Icon(Icons.security_rounded, color: cs.primary),
-                    title: const Text('Security'),
-                    trailing: Icon(Icons.chevron_right,
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
-                    onTap: () => context.go('/security'),
-                  ),
-                  const Divider(height: 1, indent: 56),
-                  ListTile(
-                    leading: Icon(Icons.logout_rounded, color: cs.onSurfaceVariant),
-                    title: Text('Sign Out',
-                        style: TextStyle(color: cs.onSurfaceVariant)),
-                    onTap: () => _logout(context, auth),
-                  ),
-                ],
-              ),
-              const SizedBox(height: HushSpacing.xxl),
-              Center(
-                child: Text(
-                  'Hush v1.0.0',
+                subtitle: Text(
+                  identity.devices.isNotEmpty
+                      ? 'Tap to manage'
+                      : 'Your identity exists on this device.',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                        color: cs.onSurfaceVariant,
                       ),
                 ),
+                trailing: Icon(
+                  Icons.chevron_right,
+                  color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                ),
+                onTap: () => context.push('/devices'),
+              ),
+            ),
+          ),
+          const SizedBox(height: HushSpacing.xl),
+          SettingsGroup(
+            title: 'Account',
+            items: [
+              ListTile(
+                leading:
+                    Icon(Icons.verified_outlined, color: cs.primary),
+                title: const Text('Verification'),
+                trailing: Icon(Icons.chevron_right,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+                onTap: () => context.push('/verification'),
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading:
+                    Icon(Icons.privacy_tip_outlined, color: cs.primary),
+                title: const Text('Privacy'),
+                trailing: Icon(Icons.chevron_right,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+                onTap: () => context.push('/privacy'),
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading:
+                    Icon(Icons.security_rounded, color: cs.primary),
+                title: const Text('Security'),
+                trailing: Icon(Icons.chevron_right,
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5)),
+                onTap: () => context.push('/security'),
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading: Icon(Icons.logout_rounded,
+                    color: cs.onSurfaceVariant),
+                title: Text('Sign Out',
+                    style: TextStyle(color: cs.onSurfaceVariant)),
+                onTap: () => _logout(),
               ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  void _logout(BuildContext context, AuthProvider auth) async {
-    final navigator = Navigator.of(context);
-    await auth.logout();
-    navigator.pushAndRemoveUntil(
-      PageRouteBuilder(
-        pageBuilder: (_, _, _) => const WelcomeScreen(),
-        transitionsBuilder: (_, a, _, child) =>
-            FadeTransition(opacity: a, child: child),
-        transitionDuration: const Duration(milliseconds: 300),
+          const SizedBox(height: HushSpacing.xl),
+          PrivacyEducationCard.private(),
+          const SizedBox(height: HushSpacing.md),
+          PrivacyEducationCard.verified(),
+          const SizedBox(height: HushSpacing.xxl),
+          Center(
+            child: Text(
+              'Hush v1.0.0',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+            ),
+          ),
+        ],
       ),
-      (_) => false,
     );
   }
 
-  Color _stateColor(VerificationState state) {
+  Future<void> _logout() async {
+    await ref.read(authStateProvider.notifier).logout();
+    if (mounted) {
+      context.go('/welcome');
+    }
+  }
+}
+
+class _ProfileHeader extends StatelessWidget {
+  final String displayName;
+  final VerificationState state;
+
+  const _ProfileHeader({
+    required this.displayName,
+    required this.state,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    return Semantics(
+      label: 'Profile for $displayName. ${state.label}',
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(HushSpacing.xl),
+        decoration: BoxDecoration(
+          color: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius:
+              BorderRadius.circular(HushSpacing.borderRadiusMd),
+          border:
+              Border.all(color: cs.outlineVariant.withValues(alpha: 0.5)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    cs.primaryContainer,
+                    cs.primary.withValues(alpha: 0.3),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Center(
+                child: Text(
+                  displayName.isNotEmpty
+                      ? displayName[0].toUpperCase()
+                      : '?',
+                  style: Theme.of(context)
+                      .textTheme
+                      .displaySmall
+                      ?.copyWith(
+                        color: cs.onPrimaryContainer,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+            ),
+            const SizedBox(height: HushSpacing.md),
+            Text(
+              displayName,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: HushSpacing.sm),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TrustIndicator(state: state, size: 14),
+                const SizedBox(width: 6),
+                Text(
+                  '${state.label} Identity',
+                  style:
+                      Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: _stateColor(context, state),
+                            fontWeight: FontWeight.w600,
+                          ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Color _stateColor(BuildContext context, VerificationState state) {
     switch (state) {
       case VerificationState.verified:
-        return HushColors.success;
+        return HushCustomColors.of(context).success;
       case VerificationState.warning:
-        return HushColors.error;
+        return HushCustomColors.of(context).warning;
       case VerificationState.pending:
-        return HushColors.secondary;
+        return Theme.of(context).colorScheme.secondary;
       case VerificationState.unknown:
         return Theme.of(context).colorScheme.onSurfaceVariant;
     }
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String title;
+
+  const _SectionHeader({required this.title});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: cs.onSurfaceVariant,
+            fontWeight: FontWeight.w600,
+          ),
+    );
   }
 }
