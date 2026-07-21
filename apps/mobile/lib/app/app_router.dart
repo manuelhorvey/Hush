@@ -127,7 +127,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoute.verification,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, _) => const VerificationScreen(),
+        builder: (_, state) {
+          final extra = state.extra;
+          String? userId;
+          if (extra is String) {
+            userId = extra;
+          }
+          return VerificationScreen(targetUserId: userId);
+        },
       ),
       GoRoute(
         path: AppRoute.profile,

@@ -13,11 +13,13 @@ import '../widgets/trust_indicator.dart';
 class VerificationScreen extends ConsumerStatefulWidget {
   final String? phrase;
   final VerificationState initialState;
+  final String? targetUserId;
 
   const VerificationScreen({
     super.key,
     this.phrase,
     this.initialState = VerificationState.unknown,
+    this.targetUserId,
   });
 
   @override
@@ -60,13 +62,27 @@ class _VerificationScreenState extends ConsumerState<VerificationScreen>
     return ref.read(identityRepositoryProvider).generateVerificationPhrase();
   }
 
-  void _startVerification() {
-    ref.read(identityNotifierProvider.notifier).requestVerification();
+  Future<void> _startVerification() async {
+    if (widget.targetUserId != null) {
+      await ref
+          .read(identityNotifierProvider.notifier)
+          .requestVerification(widget.targetUserId!);
+    } else {
+      ref.read(identityNotifierProvider.notifier).requestVerification('');
+    }
     setState(() => _state = VerificationState.pending);
   }
 
-  void _confirmVerification() {
-    ref.read(identityNotifierProvider.notifier).confirmVerification();
+  Future<void> _confirmVerification() async {
+    final success = await ref
+        .read(identityNotifierProvider.notifier)
+        .confirmVerification(widget.targetUserId ?? '', _phrase);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Verification failed — phrases did not match.')),
+      );
+      return;
+    }
     setState(() => _state = VerificationState.verified);
     _successController.forward();
   }

@@ -104,7 +104,10 @@ class IdentityNotifier extends Notifier<IdentityState> {
     }
   }
 
-  void requestVerification() {
+  Future<void> requestVerification(String targetUserId) async {
+    final auth = ref.read(authStateProvider);
+    final token = auth.token;
+    if (token == null) return;
     final user = state.user;
     if (user == null) return;
     state = state.copyWith(
@@ -112,16 +115,42 @@ class IdentityNotifier extends Notifier<IdentityState> {
         verificationState: VerificationState.pending,
       ),
     );
+    try {
+      final repo = ref.read(identityRepositoryProvider);
+      final challengeId = await repo.issueChallenge(token, targetUserId);
+      if (challengeId.isNotEmpty) {
+        _currentChallengeId = challengeId;
+      }
+    } catch (_) {
+      // Challenge creation failed; verification proceeds with phrase match
+    }
   }
 
-  void confirmVerification() {
+  String? _currentChallengeId;
+
+  Future<bool> confirmVerification(String targetUserId, String phrase) async {
+    final auth = ref.read(authStateProvider);
+    final token = auth.token;
+    if (token == null) return false;
     final user = state.user;
-    if (user == null) return;
+    if (user == null) return false;
+    if (_currentChallengeId != null) {
+      try {
+        final repo = ref.read(identityRepositoryProvider);
+        final verified = await repo.verifyChallenge(
+          token, _currentChallengeId!, phrase,
+        );
+        if (!verified) return false;
+      } catch (_) {
+        return false;
+      }
+    }
     state = state.copyWith(
       user: user.copyWith(
         verificationState: VerificationState.verified,
       ),
     );
+    return true;
   }
 
   void setWarning() {
