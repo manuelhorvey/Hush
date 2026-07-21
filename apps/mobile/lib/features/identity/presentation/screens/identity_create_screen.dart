@@ -7,6 +7,7 @@ import '../../../../core/design_system/theme/theme.dart';
 import '../../../../core/network/network_errors.dart';
 import '../../../../core/responsive/responsive_layout.dart';
 import '../../../../providers/auth_provider.dart';
+import '../../../../services/api_client.dart';
 import '../../../../services/crypto_service.dart';
 import '../../../../services/identity_service.dart';
 import '../providers/identity_notifier.dart';
@@ -92,6 +93,13 @@ class _IdentityCreateScreenState extends ConsumerState<IdentityCreateScreen>
       if (mounted) {
         setState(() {
           _error = e.userFacingMessage;
+          _loading = false;
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.message;
           _loading = false;
         });
       }
