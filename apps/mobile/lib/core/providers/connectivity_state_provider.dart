@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/conversations/conversation/presentation/providers/conversation_detail_repository_provider.dart';
 import '../../services/connectivity_monitor.dart';
+import '../../services/local_cache_service.dart';
 
 class ConnectivityState {
   final bool isOnline;
@@ -31,8 +33,20 @@ class ConnectivityStateNotifier extends Notifier<ConnectivityState> {
   }
 
   Future<void> _flushPendingMessages() async {
-    // This hook lets the app flush queued messages when connectivity returns.
-    // The actual flush is driven by the notifier's consumer.
+    try {
+      final cache = ref.read(localCacheServiceProvider);
+      final ids = await cache.getPendingConversationIds();
+      for (final conversationId in ids) {
+        try {
+          final repo = ref.read(conversationDetailRepositoryProvider);
+          await repo.flushPendingMessages(conversationId);
+        } catch (_) {
+          // Best-effort per conversation
+        }
+      }
+    } catch (_) {
+      // Best-effort
+    }
   }
 }
 

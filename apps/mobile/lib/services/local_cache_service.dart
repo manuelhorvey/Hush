@@ -35,6 +35,7 @@ abstract class CacheService {
   Future<List<Message>?> getCachedMessages(String conversationId);
   Future<void> addPendingMessage(String conversationId, String plaintext);
   Future<List<PendingMessage>> getPendingMessages(String conversationId);
+  Future<List<String>> getPendingConversationIds();
   Future<void> clearPendingMessages(String conversationId);
   Future<int> clearConversationCache();
 }
@@ -110,6 +111,19 @@ class SharedPrefsCacheService implements CacheService {
     return list
         .map((e) => PendingMessage.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  @override
+  Future<List<String>> getPendingConversationIds() async {
+    final prefs = await _prefs;
+    final keys = prefs.getKeys();
+    final ids = <String>[];
+    for (final key in keys) {
+      if (key.startsWith(_pendingPrefix)) {
+        ids.add(key.substring(_pendingPrefix.length));
+      }
+    }
+    return ids;
   }
 
   @override
@@ -228,6 +242,11 @@ class InMemoryCacheService implements CacheService {
   Future<List<PendingMessage>> getPendingMessages(
       String conversationId) async {
     return _pending[conversationId] ?? [];
+  }
+
+  @override
+  Future<List<String>> getPendingConversationIds() async {
+    return _pending.keys.toList();
   }
 
   @override
