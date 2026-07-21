@@ -40,7 +40,7 @@ Hush/
 | Backend | Rust (Axum) |
 | Database | PostgreSQL |
 | Realtime | WebSockets (gateway service) |
-| E2E Encryption | X25519 ECDH + AES-256-GCM |
+| E2E Encryption | X25519 ECDH + Double Ratchet + AES-256-GCM |
 | Message Queue | NATS |
 | Containers | Docker Compose |
 | CI/CD | GitHub Actions |
@@ -70,7 +70,7 @@ curl http://localhost:8080/health
 | Feature | Status | Details |
 | - | - | - |
 | **Ephemeral conversations** | ✅ | Create, complete, destroy lifecycle |
-| **E2E encryption** | ✅ | X25519 ECDH key exchange, AES-256-GCM message encryption |
+| **E2E encryption** | ✅ | X25519 ECDH + Double Ratchet per-message key ratcheting, AES-256-GCM, forward secrecy |
 | **Group conversations** | ✅ | Group key exchange at creation, encrypted per participant |
 | **Real-time messaging** | ✅ | WebSocket with auto-reconnect & exponential backoff |
 | **Identity & device management** | ✅ | Register devices, verify identity via challenge-response |
@@ -111,7 +111,8 @@ Hush uses a **zero-trust, ephemeral key** model:
 
 - Each device generates an Ed25519 identity keypair and an X25519 key exchange keypair on first launch.
 - Public exchange keys are registered with the identity service.
-- Messages are encrypted with a shared secret derived via X25519 ECDH (1:1) or a group key encrypted for each participant (groups).
+- 1:1 messages use the **Double Ratchet** protocol ([Signal spec](https://signal.org/docs/specifications/doubleratchet/)): X25519 ECDH shared secret bootstraps the session, then per-message key ratcheting provides forward secrecy and future-compromise resistance. Sessions are persisted to secure storage and survive app restarts.
+- Group conversations use a group key encrypted per-participant via X25519 ECDH (group key exchange is out of scope for Double Ratchet ratcheting).
 - Conversations have a lifecycle: `active → completed → destroyed`. Completed conversations are preserved until explicitly destroyed; destroyed conversations are permanently deleted.
 - Identity verification uses out-of-band phrase comparison — both parties see the same phrase and confirm they match.
 
