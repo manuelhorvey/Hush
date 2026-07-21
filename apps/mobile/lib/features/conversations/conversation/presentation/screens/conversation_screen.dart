@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../core/design_system/theme/theme.dart';
+import '../../../../../core/responsive/responsive_layout.dart';
 import '../../models/message.dart';
 import '../providers/conversation_detail_provider.dart';
 import '../widgets/conversation_app_bar.dart';
@@ -196,16 +197,25 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
           );
         },
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: _buildBody(state, groupedMessages, cs),
-          ),
-          ConversationInput(
-            isActive: state.isActive,
-            onSend: _sendMessage,
-          ),
-        ],
+      body: AdaptiveWidth(
+        child: Column(
+          children: [
+            Expanded(
+              child: _buildBody(state, groupedMessages, cs),
+            ),
+            if (state.screenStatus == ConversationScreenStatus.loaded &&
+                state.lifecycleStatus == 'completed')
+              _buildCompletedBanner(cs)
+            else if (state.lifecycleStatus != 'destroyed')
+              _buildActionBanner(cs, state.isActive),
+            ConversationInput(
+              isActive: state.isActive && state.lifecycleStatus != 'destroyed',
+              onSend: _sendMessage,
+            ),
+            if (state.lifecycleStatus == 'destroyed')
+              _buildDestroyedBanner(cs),
+          ],
+        ),
       ),
     );
   }
@@ -316,6 +326,125 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               'Start your private moment.',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: cs.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompletedBanner(ColorScheme cs) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: HushSpacing.lg,
+        vertical: HushSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            size: 16,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.6),
+          ),
+          const SizedBox(width: HushSpacing.sm),
+          Expanded(
+            child: Text(
+              'Moment completed. You can let it go to permanently delete messages.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+            ),
+          ),
+          const SizedBox(width: HushSpacing.sm),
+          Semantics(
+            label: 'Let this moment go',
+            button: true,
+            child: FilledButton.tonalIcon(
+              onPressed: _destroyConversation,
+              icon: const Icon(Icons.delete_forever_rounded, size: 18),
+              label: const Text('Let Go'),
+              style: FilledButton.styleFrom(
+                foregroundColor: cs.error,
+                backgroundColor: cs.errorContainer.withValues(alpha: 0.6),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionBanner(ColorScheme cs, bool isActive) {
+    if (!isActive) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: HushSpacing.lg,
+        vertical: HushSpacing.sm,
+      ),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: cs.outlineVariant.withValues(alpha: 0.3)),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Semantics(
+            label: 'Complete moment',
+            button: true,
+            child: TextButton.icon(
+              onPressed: _completeConversation,
+              icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+              label: const Text('Complete Moment'),
+              style: TextButton.styleFrom(
+                foregroundColor: cs.tertiary,
+              ),
+            ),
+          ),
+          const SizedBox(width: HushSpacing.sm),
+          Semantics(
+            label: 'Let this moment go',
+            button: true,
+            child: TextButton.icon(
+              onPressed: _destroyConversation,
+              icon: const Icon(Icons.delete_forever_rounded, size: 18),
+              label: const Text('Let Go'),
+              style: TextButton.styleFrom(
+                foregroundColor: cs.error,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDestroyedBanner(ColorScheme cs) {
+    return Container(
+      padding: const EdgeInsets.all(HushSpacing.lg),
+      color: cs.surfaceContainerLowest,
+      child: SafeArea(
+        top: false,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.delete_forever_rounded,
+              size: 16,
+              color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+            const SizedBox(width: HushSpacing.sm),
+            Text(
+              'Moment has been let go.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: cs.onSurfaceVariant.withValues(alpha: 0.6),
                   ),
             ),
           ],

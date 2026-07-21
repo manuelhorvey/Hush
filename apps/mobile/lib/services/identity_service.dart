@@ -82,4 +82,17 @@ class IdentityService {
     );
     return data['x25519_public_key'] as String;
   }
+
+  Future<void> removeDevice(String token, String deviceId) async {
+    await _api.delete('/api/v1/identity/devices/$deviceId', token: token);
+  }
+
+  Future<void> renameDevice(
+      String token, String deviceId, String newName) async {
+    await _api.patch(
+      '/api/v1/identity/devices/$deviceId',
+      {'device_name': newName},
+      token: token,
+    );
+  }
 }

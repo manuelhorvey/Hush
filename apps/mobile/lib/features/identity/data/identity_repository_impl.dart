@@ -21,10 +21,9 @@ class IdentityRepositoryImpl implements IdentityRepository {
   ];
 
   IdentityRepositoryImpl({
-    required IdentityService service,
+    required this._service,
     Random? random,
-  })  : _service = service,
-        _rng = random ?? Random.secure();
+  }) : _rng = random ?? Random.secure();
 
   @override
   Future<UserIdentity> createIdentity({
@@ -86,7 +85,7 @@ class IdentityRepositoryImpl implements IdentityRepository {
   @override
   Future<void> removeDevice(String token, String deviceId) async {
     try {
-      await _service.storeExchangeKey(token, '');
+      await _service.removeDevice(token, deviceId);
     } on ApiException catch (e) {
       throw ServerIdentityFailure(e.message);
     } catch (_) {
@@ -100,7 +99,13 @@ class IdentityRepositoryImpl implements IdentityRepository {
     String deviceId,
     String newName,
   ) async {
-    return;
+    try {
+      await _service.renameDevice(token, deviceId, newName);
+    } on ApiException catch (e) {
+      throw ServerIdentityFailure(e.message);
+    } catch (_) {
+      throw const NetworkIdentityFailure();
+    }
   }
 
   @override

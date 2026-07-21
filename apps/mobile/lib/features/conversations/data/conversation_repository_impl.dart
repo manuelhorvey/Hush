@@ -1,140 +1,117 @@
-import 'dart:math';
-
+import '../../../services/local_cache_service.dart';
+import '../../../services/messaging_service.dart';
 import '../domain/conversation_repository.dart';
 import '../models/conversation.dart';
 
 class ConversationRepositoryImpl implements ConversationRepository {
-  final Random _rng;
-  final List<Conversation> _createdConversations = [];
+  final MessagingService _messaging;
+  final CacheService _cache;
+  final String? Function() _tokenProvider;
 
-  ConversationRepositoryImpl({Random? random})
-      : _rng = random ?? Random();
+  ConversationRepositoryImpl({
+    required this._messaging,
+    required this._cache,
+    required this._tokenProvider,
+  });
 
-  static const _names = <String>[
-    'Sarah', 'Alex', 'Jordan', 'Taylor', 'Morgan',
-    'Riley', 'Avery', 'Quinn', 'Harper', 'Casey',
-    'Reese', 'Skyler', 'Emerson', 'Finley', 'Rowan',
-  ];
+  String get _token {
+    final t = _tokenProvider();
+    if (t == null) throw Exception('Not authenticated');
+    return t;
+  }
 
   @override
   Future<List<Conversation>> listConversations() async {
-    // Simulate network delay
-    await Future.delayed(const Duration(milliseconds: 300));
-    return [...generateMockData(), ..._createdConversations];
+    final token = _token;
+    try {
+      final infos = await _messaging.listConversations(token);
+      final conversations = infos.map(_mapConversationInfo).toList();
+      await _cache.cacheConversations(conversations);
+      return conversations;
+    } catch (_) {
+      final cached = await _cache.getCachedConversations();
+      if (cached != null) return cached;
+      rethrow;
+    }
   }
 
   @override
   Future<Conversation> createConversation({
-    required String participantName,
-    required String participantId,
+    required List<String> participantIds,
+    Map<String, String>? encryptedKeys,
   }) async {
-    await Future.delayed(const Duration(milliseconds: 200));
-    final conversation = Conversation(
-      id: 'conv-created-${_rng.nextInt(99999)}',
-      participants: [
-        ConversationParticipant(
-          id: participantId,
-          displayName: participantName,
-        ),
-      ],
-      lifecycle: ConversationLifecycle.active,
-      createdAt: DateTime.now(),
-      isVerified: false,
+    final token = _token;
+    final info = await _messaging.createConversation(
+      token,
+      participantIds,
+      encryptedKeys: encryptedKeys,
     );
-    _createdConversations.add(conversation);
+    final conversation = _mapConversationInfo(info);
+    await _updateCacheAfterMutation();
     return conversation;
   }
 
   @override
-  Conversation generateMockConversation({ConversationLifecycle? lifecycle}) {
-    final cycle = lifecycle ??
-        ConversationLifecycle.values[_rng.nextInt(ConversationLifecycle.values.length)];
-    final name = _names[_rng.nextInt(_names.length)];
-    final now = DateTime.now();
-    final createdAgo = switch (cycle) {
-      ConversationLifecycle.active => Duration(hours: _rng.nextInt(48) + 1),
-      ConversationLifecycle.waiting => Duration(hours: _rng.nextInt(24) + 1),
-      ConversationLifecycle.completing => Duration(hours: _rng.nextInt(12) + 1),
-      ConversationLifecycle.closed => Duration(days: _rng.nextInt(7) + 1),
-      ConversationLifecycle.warning => Duration(hours: _rng.nextInt(72) + 1),
-    };
-
-    return Conversation(
-      id: 'conv-${_rng.nextInt(99999)}',
-      participants: [
-        ConversationParticipant(
-          id: 'user-${_rng.nextInt(9999)}',
-          displayName: name,
-        ),
-      ],
-      lifecycle: cycle,
-      createdAt: now.subtract(createdAgo),
-      completedAt: cycle == ConversationLifecycle.closed
-          ? now.subtract(Duration(hours: _rng.nextInt(24)))
-          : null,
-      isVerified: _rng.nextBool(),
-    );
+  Future<Conversation> completeConversation(String id) async {
+    final token = _token;
+    final info = await _messaging.completeConversation(token, id);
+    await _updateCacheAfterMutation();
+    return _mapConversationInfo(info);
   }
 
   @override
-  List<Conversation> generateMockData() {
-    return [
-      Conversation(
-        id: 'conv-1',
-        participants: [
-          const ConversationParticipant(id: 'user-1', displayName: 'Sarah'),
-        ],
-        lifecycle: ConversationLifecycle.active,
-        createdAt: DateTime.now().subtract(const Duration(hours: 2)),
-        isVerified: true,
-      ),
-      Conversation(
-        id: 'conv-2',
-        participants: [
-          const ConversationParticipant(id: 'user-2', displayName: 'Jordan'),
-        ],
-        lifecycle: ConversationLifecycle.waiting,
-        createdAt: DateTime.now().subtract(const Duration(hours: 5)),
-        isVerified: false,
-      ),
-      Conversation(
-        id: 'conv-3',
-        participants: [
-          const ConversationParticipant(id: 'user-3', displayName: 'Taylor'),
-        ],
-        lifecycle: ConversationLifecycle.completing,
-        createdAt: DateTime.now().subtract(const Duration(hours: 12)),
-        isVerified: true,
-      ),
-      Conversation(
-        id: 'conv-4',
-        participants: [
-          const ConversationParticipant(id: 'user-4', displayName: 'Morgan'),
-        ],
-        lifecycle: ConversationLifecycle.closed,
-        createdAt: DateTime.now().subtract(const Duration(days: 2)),
-        completedAt: DateTime.now().subtract(const Duration(hours: 6)),
-        isVerified: true,
-      ),
-      Conversation(
-        id: 'conv-5',
-        participants: [
-          const ConversationParticipant(id: 'user-5', displayName: 'Reese'),
-        ],
-        lifecycle: ConversationLifecycle.closed,
-        createdAt: DateTime.now().subtract(const Duration(days: 5)),
-        completedAt: DateTime.now().subtract(const Duration(days: 1)),
-        isVerified: false,
-      ),
-      Conversation(
-        id: 'conv-6',
-        participants: [
-          const ConversationParticipant(id: 'user-6', displayName: 'Alex'),
-        ],
-        lifecycle: ConversationLifecycle.warning,
-        createdAt: DateTime.now().subtract(const Duration(hours: 8)),
-        isVerified: false,
-      ),
-    ];
+  Future<void> destroyConversation(String id) async {
+    final token = _token;
+    await _messaging.destroyConversation(token, id);
+    await _updateCacheAfterMutation();
+  }
+
+  Future<void> _updateCacheAfterMutation() async {
+    try {
+      final token = _token;
+      final infos = await _messaging.listConversations(token);
+      await _cache.cacheConversations(
+        infos.map(_mapConversationInfo).toList(),
+      );
+    } catch (_) {
+      // Best-effort cache refresh
+    }
+  }
+
+  @override
+  Future<List<({String id, String username})>> searchUsers(String query) async {
+    final token = _token;
+    final users = await _messaging.searchUsers(token, query);
+    return users.map((u) => (id: u.id, username: u.username)).toList();
+  }
+
+  Conversation _mapConversationInfo(ConversationInfo info) {
+    return Conversation(
+      id: info.id,
+      participants: info.participants
+          .map((p) => ConversationParticipant(
+                id: p.userId,
+                displayName: p.username,
+              ))
+          .toList(),
+      lifecycle: _mapStatus(info.status),
+      createdAt: DateTime.tryParse(info.createdAt) ?? DateTime.now(),
+      completedAt:
+          info.expiresAt != null ? DateTime.tryParse(info.expiresAt!) : null,
+      isVerified: false,
+    );
+  }
+
+  ConversationLifecycle _mapStatus(String status) {
+    switch (status) {
+      case 'active':
+        return ConversationLifecycle.active;
+      case 'completed':
+        return ConversationLifecycle.closed;
+      case 'destroyed':
+        return ConversationLifecycle.closed;
+      default:
+        return ConversationLifecycle.active;
+    }
   }
 }

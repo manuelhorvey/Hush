@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../theme/app_spacing.dart';
+import '../../../responsive/responsive_layout.dart';
 
 class HushScaffold extends StatelessWidget {
   final Widget? appBar;
@@ -27,15 +28,26 @@ class HushScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor ?? cs.surface,
       appBar: appBar as PreferredSizeWidget?,
-      body: Padding(
-        padding: bodyPadding ??
-            const EdgeInsets.fromLTRB(
-              HushSpacing.lg,
-              HushSpacing.md,
-              HushSpacing.lg,
-              HushSpacing.xxl,
-            ),
-        child: body,
+      body: ResponsiveBuilder(
+        builder: (context, size) {
+          final defaultPadding = size.isDesktop || size.isTablet
+              ? const EdgeInsets.fromLTRB(
+                  HushSpacing.xxl,
+                  HushSpacing.xl,
+                  HushSpacing.xxl,
+                  HushSpacing.xxl,
+                )
+              : const EdgeInsets.fromLTRB(
+                  HushSpacing.lg,
+                  HushSpacing.md,
+                  HushSpacing.lg,
+                  HushSpacing.xxl,
+                );
+          return Padding(
+            padding: bodyPadding ?? defaultPadding,
+            child: body,
+          );
+        },
       ),
       floatingActionButton: fab,
       bottomNavigationBar: bottomNavigationBar,

@@ -37,29 +37,29 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(
         path: AppRoute.splash,
-        builder: (_, __) => const SplashScreen(),
+        builder: (_, _) => const SplashScreen(),
       ),
       GoRoute(
         path: AppRoute.welcome,
-        builder: (_, __) => const WelcomeScreen(),
+        builder: (_, _) => const WelcomeScreen(),
       ),
       GoRoute(
         path: '/login',
-        builder: (_, __) => const LoginScreen(),
+        builder: (_, _) => const LoginScreen(),
       ),
       GoRoute(
         path: '/create-identity',
-        builder: (_, __) => const IdentityCreateScreen(),
+        builder: (_, _) => const IdentityCreateScreen(),
       ),
       StatefulShellRoute.indexedStack(
-        builder: (_, __, navigationShell) =>
+        builder: (_, _, navigationShell) =>
             AppShell(navigationShell: navigationShell),
         branches: [
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: AppRoute.home,
-                builder: (_, __) => const HomeScreen(),
+                builder: (_, _) => const HomeScreen(),
               ),
             ],
           ),
@@ -67,7 +67,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoute.identity,
-                builder: (_, __) => const IdentityProfileScreen(),
+                builder: (_, _) => const IdentityProfileScreen(),
               ),
             ],
           ),
@@ -75,7 +75,7 @@ final routerProvider = Provider<GoRouter>((ref) {
             routes: [
               GoRoute(
                 path: AppRoute.settings,
-                builder: (_, __) => const SettingsScreen(),
+                builder: (_, _) => const SettingsScreen(),
               ),
             ],
           ),
@@ -117,32 +117,32 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoute.newConversation,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const NewConversationScreen(),
+        builder: (_, _) => const NewConversationScreen(),
       ),
       GoRoute(
         path: AppRoute.devices,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const DeviceManagementScreen(),
+        builder: (_, _) => const DeviceManagementScreen(),
       ),
       GoRoute(
         path: AppRoute.verification,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const VerificationScreen(),
+        builder: (_, _) => const VerificationScreen(),
       ),
       GoRoute(
         path: AppRoute.profile,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const IdentityProfileScreen(),
+        builder: (_, _) => const IdentityProfileScreen(),
       ),
       GoRoute(
         path: AppRoute.privacy,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const PrivacyScreen(),
+        builder: (_, _) => const PrivacyScreen(),
       ),
       GoRoute(
         path: AppRoute.security,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const SecurityScreen(),
+        builder: (_, _) => const SecurityScreen(),
       ),
     ],
     errorBuilder: (context, state) => HushErrorState(

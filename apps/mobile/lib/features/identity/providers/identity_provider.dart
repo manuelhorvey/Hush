@@ -14,10 +14,9 @@ class IdentityProvider extends ChangeNotifier {
   final CryptoService _crypto;
 
   IdentityProvider({
-    required IdentityService identity,
-    required CryptoService crypto,
-  })  : _identity = identity,
-        _crypto = crypto;
+    required this._identity,
+    required this._crypto,
+  });
 
   UserIdentity? _userIdentity;
   List<DeviceIdentity> _devices = [];

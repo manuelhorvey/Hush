@@ -70,16 +70,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final allActive = _filter(conversationsState.activeConversations);
     final allClosed = _filter(conversationsState.closedConversations);
     final allConversations = [...allActive, ...allClosed];
-    final isDesktop = MediaQuery.of(context).size.shortestSide >= 600;
 
-    // Build the tap handler: desktop selects in pane, mobile navigates
     void onConversationTap(Conversation conversation) {
-      if (isDesktop) {
-        setState(() => _selectedConversationId = conversation.id);
-      } else {
-        context.push('/conversation/${conversation.id}',
-            extra: conversation.displayName);
-      }
+      context.push('/conversation/${conversation.id}',
+          extra: conversation.displayName);
     }
 
     return Scaffold(

@@ -1,13 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../data/conversation_detail_repository_impl.dart';
-import '../../domain/conversation_detail_repository.dart';
 import '../../models/message.dart';
-
-final conversationDetailRepositoryProvider =
-    Provider<ConversationDetailRepository>((ref) {
-  return ConversationDetailRepositoryImpl();
-});
+import 'conversation_detail_repository_provider.dart';
 
 enum ConversationScreenStatus { loading, loaded, error }
 
@@ -49,21 +45,31 @@ class ConversationDetailState {
 
 class ConversationDetailNotifier
     extends Notifier<ConversationDetailState> {
+  StreamSubscription<Message>? _messageSub;
+
   @override
-  ConversationDetailState build() => const ConversationDetailState();
+  ConversationDetailState build() {
+    ref.onDispose(() {
+      _messageSub?.cancel();
+    });
+    return const ConversationDetailState();
+  }
 
   Future<void> load(String conversationId) async {
     state = state.copyWith(screenStatus: ConversationScreenStatus.loading);
     try {
       final repo = ref.read(conversationDetailRepositoryProvider);
       final messages = await repo.getMessages(conversationId);
-      final status = repo.getStatus(conversationId);
+      final status = await repo.getStatus(conversationId);
+
       state = ConversationDetailState(
         messages: messages,
-        isActive: status == 'active',
-        lifecycleStatus: status,
+        isActive: status.name == 'active',
+        lifecycleStatus: status.name,
         screenStatus: ConversationScreenStatus.loaded,
       );
+
+      _listenForMessages(conversationId);
     } catch (e) {
       state = state.copyWith(
         screenStatus: ConversationScreenStatus.error,
@@ -72,29 +78,48 @@ class ConversationDetailNotifier
     }
   }
 
+  void _listenForMessages(String conversationId) {
+    _messageSub?.cancel();
+    final repo = ref.read(conversationDetailRepositoryProvider);
+
+    _messageSub = repo.messageStream(conversationId).listen((message) {
+      final current = state;
+      if (!current.messages.any((m) => m.id == message.id)) {
+        state = current.copyWith(
+          messages: [...current.messages, message],
+        );
+      }
+    });
+  }
+
   Future<void> sendMessage(String conversationId, String content) async {
     if (content.trim().isEmpty) return;
     final repo = ref.read(conversationDetailRepositoryProvider);
     await repo.sendMessage(conversationId, content.trim());
-    await load(conversationId);
   }
 
   Future<void> completeConversation(String conversationId) async {
     final repo = ref.read(conversationDetailRepositoryProvider);
-    await repo.completeConversation(conversationId);      state = state.copyWith(
+    final success = await repo.completeConversation(conversationId);
+    if (success) {
+      state = state.copyWith(
         isActive: false,
         lifecycleStatus: 'completed',
         completedAt: DateTime.now(),
       );
+    }
   }
 
   Future<void> destroyConversation(String conversationId) async {
     final repo = ref.read(conversationDetailRepositoryProvider);
-    await repo.destroyConversation(conversationId);
-    state = state.copyWith(
-      isActive: false,
-      lifecycleStatus: 'destroyed',
-    );
+    final success = await repo.destroyConversation(conversationId);
+    if (success) {
+      _messageSub?.cancel();
+      state = state.copyWith(
+        isActive: false,
+        lifecycleStatus: 'destroyed',
+      );
+    }
   }
 }
 

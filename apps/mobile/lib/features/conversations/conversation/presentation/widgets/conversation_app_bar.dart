@@ -50,6 +50,18 @@ class ConversationAppBar extends StatelessWidget
     }
   }
 
+  IconData get _subtitleIcon {
+    switch (lifecycleStatus) {
+      case 'completed':
+        return Icons.hourglass_bottom_rounded;
+      case 'destroyed':
+        return Icons.delete_forever_rounded;
+      default:
+        if (isVerified) return Icons.verified_rounded;
+        return Icons.lock_rounded;
+    }
+  }
+
   String? get _closingLabel {
     if (completedAt == null) return null;
     final deadline = completedAt!.add(const Duration(hours: 24));
@@ -80,10 +92,25 @@ class ConversationAppBar extends StatelessWidget
     final cs = Theme.of(context).colorScheme;
     final letter = avatarLetter ??
         (displayName.isNotEmpty ? displayName[0].toUpperCase() : '?');
+    final custom = HushCustomColors.of(context);
     final subtitleColor = switch (lifecycleStatus) {
       'completed' => cs.tertiary,
       'destroyed' => cs.onSurfaceVariant.withValues(alpha: 0.5),
+      _ when isVerified => custom.success,
       _ => cs.onSurfaceVariant.withValues(alpha: 0.6),
+    };
+
+    final avatarColor = switch (lifecycleStatus) {
+      'completed' => cs.tertiaryContainer,
+      'destroyed' => cs.surfaceContainerHighest,
+      _ when isVerified => custom.successContainer,
+      _ => cs.primaryContainer,
+    };
+    final avatarTextColor = switch (lifecycleStatus) {
+      'completed' => cs.onTertiaryContainer,
+      'destroyed' => cs.onSurfaceVariant,
+      _ when isVerified => custom.onSuccess,
+      _ => cs.onPrimaryContainer,
     };
 
     return Semantics(
@@ -114,12 +141,12 @@ class ConversationAppBar extends StatelessWidget
                     ),
                   ),
 
-                  // Avatar
+                  // Avatar (tinted by lifecycle state)
                   Container(
                     width: 24,
                     height: 24,
                     decoration: BoxDecoration(
-                      color: cs.primaryContainer,
+                      color: avatarColor,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Center(
@@ -130,7 +157,7 @@ class ConversationAppBar extends StatelessWidget
                             .labelSmall
                             ?.copyWith(
                               fontWeight: FontWeight.w700,
-                              color: cs.onPrimaryContainer,
+                              color: avatarTextColor,
                               fontSize: 11,
                             ),
                       ),
@@ -155,15 +182,25 @@ class ConversationAppBar extends StatelessWidget
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 1),
-                        Text(
-                          _subtitle,
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(
-                                color: subtitleColor,
-                                fontWeight: FontWeight.w500,
-                              ),
+                        Row(
+                          children: [
+                            Icon(
+                              _subtitleIcon,
+                              size: 12,
+                              color: subtitleColor,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              _subtitle,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: subtitleColor,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

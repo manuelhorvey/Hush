@@ -20,7 +20,7 @@ class DeviceCard extends StatelessWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Semantics(
-      label: '${device.deviceName}. ${_trustLabel}. ${device.createdAtFormatted}',
+      label: '${device.deviceName}. $_trustLabel. ${device.createdAtFormatted}',
       child: Card(
         margin: EdgeInsets.zero,
         child: InkWell(
@@ -57,7 +57,7 @@ class DeviceCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '${device.createdAtFormatted}',
+                        device.createdAtFormatted,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: cs.onSurfaceVariant,
                         ),
