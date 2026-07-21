@@ -73,7 +73,7 @@ class ConversationDetailNotifier
     } catch (e) {
       state = state.copyWith(
         screenStatus: ConversationScreenStatus.error,
-        error: 'Unable to load conversation.',
+        error: e.toString(),
       );
     }
   }
@@ -92,13 +92,19 @@ class ConversationDetailNotifier
     });
   }
 
-  Future<void> sendMessage(String conversationId, String content) async {
-    if (content.trim().isEmpty) return;
+  Future<bool> sendMessage(String conversationId, String content) async {
+    if (content.trim().isEmpty) return false;
     final repo = ref.read(conversationDetailRepositoryProvider);
-    await repo.sendMessage(conversationId, content.trim());
+    final success = await repo.sendMessage(conversationId, content.trim());
+    if (!success) {
+      state = state.copyWith(
+        error: 'Message queued — will send when back online.',
+      );
+    }
+    return success;
   }
 
-  Future<void> completeConversation(String conversationId) async {
+  Future<bool> completeConversation(String conversationId) async {
     final repo = ref.read(conversationDetailRepositoryProvider);
     final success = await repo.completeConversation(conversationId);
     if (success) {
@@ -107,10 +113,15 @@ class ConversationDetailNotifier
         lifecycleStatus: 'completed',
         completedAt: DateTime.now(),
       );
+    } else {
+      state = state.copyWith(
+        error: 'Failed to complete moment.',
+      );
     }
+    return success;
   }
 
-  Future<void> destroyConversation(String conversationId) async {
+  Future<bool> destroyConversation(String conversationId) async {
     final repo = ref.read(conversationDetailRepositoryProvider);
     final success = await repo.destroyConversation(conversationId);
     if (success) {
@@ -119,7 +130,12 @@ class ConversationDetailNotifier
         isActive: false,
         lifecycleStatus: 'destroyed',
       );
+    } else {
+      state = state.copyWith(
+        error: 'Failed to destroy moment.',
+      );
     }
+    return success;
   }
 }
 

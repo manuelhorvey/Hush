@@ -60,10 +60,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     });
   }
 
-  void _sendMessage(String text) {
-    ref
+  Future<void> _sendMessage(String text) async {
+    final success = await ref
         .read(conversationDetailProvider.notifier)
         .sendMessage(widget.conversationId, text);
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Message queued — will send when back online.')),
+      );
+    }
     _scrollToBottom();
   }
 
@@ -88,9 +93,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      ref
+      final success = await ref
           .read(conversationDetailProvider.notifier)
           .completeConversation(widget.conversationId);
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to complete moment.')),
+        );
+      }
     }
   }
 
@@ -119,9 +129,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      ref
+      final success = await ref
           .read(conversationDetailProvider.notifier)
           .destroyConversation(widget.conversationId);
+      if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to destroy moment.')),
+        );
+      }
     }
   }
 
@@ -263,6 +278,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   }
 
   Widget _buildError(ColorScheme cs) {
+    final state = ref.watch(conversationDetailProvider);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(HushSpacing.xxl),
@@ -276,7 +292,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             ),
             const SizedBox(height: HushSpacing.lg),
             Text(
-              'Unable to load moment',
+              state.error ?? 'Unable to load moment',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
