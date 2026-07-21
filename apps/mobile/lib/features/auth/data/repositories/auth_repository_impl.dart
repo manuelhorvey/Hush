@@ -46,12 +46,13 @@ class AuthRepository {
   }) async {
     try {
       final response = await _remoteDataSource.register(username, publicKey);
+      final safeUsername = response.username.isNotEmpty ? response.username : username;
       await _saveSession(response.token, response.refreshToken,
-          response.userId, response.username);
+          response.userId, safeUsername);
       return SessionInfo(
         token: response.token,
         userId: response.userId,
-        username: response.username,
+        username: safeUsername,
       );
     } on NetworkException {
       rethrow;
@@ -61,12 +62,13 @@ class AuthRepository {
   Future<SessionInfo> login({required String username}) async {
     try {
       final response = await _remoteDataSource.login(username);
+      final safeUsername = response.username.isNotEmpty ? response.username : username;
       await _saveSession(response.token, response.refreshToken,
-          response.userId, response.username);
+          response.userId, safeUsername);
       return SessionInfo(
         token: response.token,
         userId: response.userId,
-        username: response.username,
+        username: safeUsername,
       );
     } on NetworkException {
       rethrow;
@@ -85,8 +87,8 @@ class AuthRepository {
       }
       return SessionInfo(
         token: response.token.isNotEmpty ? response.token : token,
-        userId: response.userId,
-        username: response.username,
+        userId: response.userId.isNotEmpty ? response.userId : (await _storage.getUserId() ?? ''),
+        username: response.username.isNotEmpty ? response.username : (await _storage.getUsername() ?? ''),
       );
     } on NetworkException {
       final userId = await _storage.getUserId();

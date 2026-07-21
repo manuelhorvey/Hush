@@ -33,10 +33,10 @@ class AuthResponseDto {
 
   factory AuthResponseDto.fromJson(Map<String, dynamic> json) {
     return AuthResponseDto(
-      token: json['token'] as String,
+      token: json['token'] as String? ?? '',
       refreshToken: json['refresh_token'] as String? ?? '',
-      userId: json['user_id'] as String,
-      username: json['username'] as String,
+      userId: json['user_id'] as String? ?? '',
+      username: json['username'] as String? ?? '',
     );
   }
 }
