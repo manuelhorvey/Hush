@@ -6,7 +6,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 class NotificationService {
   final FlutterLocalNotificationsPlugin _localNotifications =
       FlutterLocalNotificationsPlugin();
-  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  late final FirebaseMessaging _fcm;
   bool _initialized = false;
   void Function(String? conversationId)? onNotificationTap;
 
@@ -15,6 +15,7 @@ class NotificationService {
 
     try {
       await Firebase.initializeApp();
+      _fcm = FirebaseMessaging.instance;
     } catch (e) {
       debugPrint('Firebase init failed: $e');
       return;
@@ -57,6 +58,7 @@ class NotificationService {
   }
 
   Future<String?> getToken() async {
+    if (!_initialized) return null;
     try {
       return await _fcm.getToken();
     } catch (_) {
