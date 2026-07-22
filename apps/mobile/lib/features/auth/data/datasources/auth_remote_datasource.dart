@@ -8,6 +8,7 @@ abstract class AuthRemoteDataSource {
   Future<AuthResponseDto> login(String username);
   Future<AuthResponseDto> getSession();
   Future<RefreshResponseDto> refreshToken(String refreshToken);
+  Future<void> logout();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -47,5 +48,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: RefreshRequest(refreshToken: refreshToken).toJson(),
     );
     return RefreshResponseDto.fromJson(response);
+  }
+
+  @override
+  Future<void> logout() async {
+    await _client.post(ApiEndpoints.logout);
   }
 }
