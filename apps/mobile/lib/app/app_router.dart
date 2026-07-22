@@ -21,6 +21,7 @@ import '../../core/design_system/components/feedback/error_state.dart';
 import '../../core/routing/app_route.dart';
 import '../../core/routing/auth_guard.dart';
 import '../../core/providers/auth_state_provider.dart';
+import '../../core/providers/conversations_state_provider.dart';
 import 'app_shell.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
@@ -70,16 +71,29 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, state) {
           final conversationId = state.pathParameters['id']!;
           final extra = state.extra;
-          final name = switch (extra) {
-            (final String s) => s,
-            (final List<ParticipantInfo> participants)
-                when participants.isNotEmpty =>
-              participants.first.username,
-            _ => 'Unknown',
-          };
+
+          String resolveName() {
+            if (extra is String) return extra;
+            if (extra is List<ParticipantInfo> && extra.isNotEmpty) {
+              return extra.first.username;
+            }
+            // Fallback: look up from conversations state
+            try {
+              final convs = ref.read(conversationsStateProvider).conversations;
+              final match = convs.where((c) => c.id == conversationId).firstOrNull;
+              if (match != null) {
+                final other = match.participants
+                    .where((p) => p.userId != auth.userId)
+                    .firstOrNull;
+                if (other != null) return other.username;
+              }
+            } catch (_) {}
+            return 'Unknown';
+          }
+
           return ConversationScreen(
             conversationId: conversationId,
-            participantName: name,
+            participantName: resolveName(),
           );
         },
       ),

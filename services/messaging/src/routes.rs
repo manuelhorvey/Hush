@@ -432,6 +432,7 @@ pub async fn send_message(
 
     let response = MessageResponse {
         id: message_id,
+        conversation_id,
         sender_id: user_id,
         ciphertext: body.ciphertext.clone(),
         created_at: now,
@@ -524,6 +525,7 @@ pub async fn list_messages(
         .into_iter()
         .map(|m| MessageResponse {
             id: m.id,
+            conversation_id: m.conversation_id,
             sender_id: m.sender_id,
             ciphertext: m.ciphertext,
             created_at: m.created_at,

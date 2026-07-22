@@ -99,7 +99,10 @@ class _NewConversationScreenState
           );
 
       if (!mounted) return;
-      context.go('/conversation/${conversation.id}');
+      context.go(
+        '/conversation/${conversation.id}',
+        extra: _selectedUser!.username,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _creating = false);

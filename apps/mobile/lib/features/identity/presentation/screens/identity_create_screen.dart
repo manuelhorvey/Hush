@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 import '../../../../core/design_system/theme/theme.dart';
 import '../../../../core/network/network_errors.dart';
+import '../../../../core/providers/auth_state_provider.dart';
+import '../../../../core/providers/crypto_service_provider.dart';
 import '../../../../core/responsive/responsive_layout.dart';
-import '../../../../providers/auth_provider.dart';
+import '../../../../features/identity/presentation/providers/identity_service_provider.dart';
 import '../../../../services/api_client.dart';
-import '../../../../services/crypto_service.dart';
-import '../../../../services/identity_service.dart';
 import '../providers/identity_notifier.dart';
 
 class IdentityCreateScreen extends ConsumerStatefulWidget {
@@ -68,17 +67,37 @@ class _IdentityCreateScreenState extends ConsumerState<IdentityCreateScreen>
       // 3. Store the exchange key
       // 4. Set the identity in the Riverpod notifier
 
-      final authProvider = context.read<AuthProvider>();
-      final crypto = context.read<CryptoService>();
-      final identity = context.read<IdentityService>();
+      final authNotifier = ref.read(authStateProvider.notifier);
+      final crypto = ref.read(cryptoServiceProvider);
+      final identity = ref.read(identityServiceProvider);
 
       final publicKey = await crypto.getPublicKeyHex();
-      final session = await authProvider.register(displayName, publicKey);
+      final session = await authNotifier.register(displayName, publicKey);
 
       await identity.registerDevice(session.token, displayName, publicKey);
 
       final x25519PubKey = await crypto.getX25519PublicKeyBase64();
-      await identity.storeExchangeKey(session.token, x25519PubKey);
+
+      // Retry storeExchangeKey up to 3 times with exponential backoff
+      // to handle transient network or server issues during identity creation.
+      bool keyStored = false;
+      for (int attempt = 0; attempt < 3 && !keyStored; attempt++) {
+        try {
+          await identity.storeExchangeKey(session.token, x25519PubKey);
+          keyStored = true;
+          debugPrint('[Identity] Exchange key stored successfully');
+        } catch (e) {
+          debugPrint('[Identity] storeExchangeKey attempt $attempt failed: $e');
+          if (attempt < 2) {
+            await Future.delayed(
+              Duration(milliseconds: 500 * (attempt + 1)),
+            );
+          }
+        }
+      }
+      if (!keyStored) {
+        debugPrint('[Identity] WARNING: exchange key may not be stored on server');
+      }
 
       // Set the identity in the Riverpod notifier
       if (mounted) {

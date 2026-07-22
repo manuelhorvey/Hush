@@ -15,5 +15,6 @@ final conversationRepositoryProvider =
     messaging: messaging,
     cache: ref.watch(localCacheServiceProvider),
     tokenProvider: () => auth.token,
+    userIdProvider: () => auth.userId,
   );
 });

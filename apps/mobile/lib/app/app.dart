@@ -17,7 +17,6 @@ import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../features/identity/presentation/providers/identity_service_provider.dart';
 import '../../features/identity/providers/identity_provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/connectivity_provider.dart';
 import '../../providers/conversations_provider.dart';
 import '../../services/api_client.dart' as legacy;
@@ -79,9 +78,7 @@ class HushApp extends StatelessWidget {
           p.Provider<CryptoService>.value(value: cryptoService),
           p.Provider<IdentityService>.value(value: identityService),
           p.Provider<MessagingService>.value(value: messagingService),
-          p.ChangeNotifierProvider<AuthProvider>(
-            create: (_) => AuthProvider(auth: authRepository),
-          ),
+
           p.ChangeNotifierProvider<ConversationsProvider>(
             create: (_) => ConversationsProvider(messaging: messagingService),
           ),

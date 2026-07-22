@@ -56,6 +56,7 @@ class Conversation {
   final DateTime createdAt;
   final DateTime? completedAt;
   final bool isVerified;
+  final String? currentUserId;
 
   const Conversation({
     required this.id,
@@ -64,17 +65,24 @@ class Conversation {
     required this.createdAt,
     this.completedAt,
     this.isVerified = false,
+    this.currentUserId,
   });
 
+  List<ConversationParticipant> get otherParticipants {
+    if (currentUserId == null) return participants;
+    return participants.where((p) => p.id != currentUserId).toList();
+  }
+
   String get displayName {
-    if (participants.isEmpty) return 'Unknown';
-    if (participants.length == 1) return participants.first.displayName;
-    final names = participants.map((p) => p.displayName).toList();
+    final others = otherParticipants;
+    if (others.isEmpty) return participants.firstOrNull?.displayName ?? 'Unknown';
+    if (others.length == 1) return others.first.displayName;
+    final names = others.map((p) => p.displayName).toList();
     return '${names.first} +${names.length - 1}';
   }
 
   String? get firstOtherParticipantName {
-    return participants.firstOrNull?.displayName;
+    return otherParticipants.firstOrNull?.displayName;
   }
 
   String get relativeTime {

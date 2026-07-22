@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:cryptography/cryptography.dart';
 
 class RatchetHeader {
@@ -194,27 +195,48 @@ class DoubleRatchet {
     RatchetEnvelope envelope,
   ) async {
     final header = envelope.header;
+    debugPrint('[DR.decrypt] header.n=${header.messageNumber} header.pn=${header.previousChainLength}');
+    debugPrint('[DR.decrypt] dhRemote=${s.dhRemote != null ? base64Encode(s.dhRemote!).substring(0, 16) : "null"}');
+    debugPrint('[DR.decrypt] header.dh=${base64Encode(header.dhPublicKey).substring(0, 16)}');
+    debugPrint('[DR.decrypt] recvCount=${s.receiveCount} sendCount=${s.sendCount}');
+    debugPrint('[DR.decrypt] has_ckR=${s.receivingChainKey != null} has_ckS=${s.sendingChainKey != null}');
 
     final skippedKey = _trySkippedKey(s, header);
     if (skippedKey != null) {
+      debugPrint('[DR.decrypt] FOUND in skipped keys — decrypting directly');
       return _decryptWith(skippedKey, envelope.ciphertextBase64);
     }
 
     if (s.dhRemote == null || !_bytesEqual(s.dhRemote!, header.dhPublicKey)) {
+      debugPrint('[DR.decrypt] DH ratchet needed (dhRemote differs or null)');
       if (s.dhRemote != null && s.receivingChainKey != null) {
+        debugPrint('[DR.decrypt]  saving old chain keys as skipped before ratchet...');
         await _skipMessageKeys(s, header.previousChainLength);
       }
       await _dhRatchetStep(s, header.dhPublicKey);
+      debugPrint('[DR.decrypt] after dhRatchetStep: recvCount=${s.receiveCount}, has_ckR=${s.receivingChainKey != null}');
+    } else {
+      debugPrint('[DR.decrypt] same dhRemote — no DH ratchet needed');
     }
 
+    debugPrint('[DR.decrypt] skipMessageKeys to ${header.messageNumber} (current recvCount=${s.receiveCount})');
     await _skipMessageKeys(s, header.messageNumber);
 
+    debugPrint('[DR.decrypt] deriving message key from receiving chain...');
     final (messageKey, nextChainKey) =
         await _kdfChainKey(s.receivingChainKey!);
     s.receivingChainKey = nextChainKey;
     s.receiveCount += 1;
+    debugPrint('[DR.decrypt] derived messageKey (${messageKey.length} bytes), new recvCount=${s.receiveCount}');
 
-    return _decryptWith(messageKey, envelope.ciphertextBase64);
+    try {
+      final plaintext = await _decryptWith(messageKey, envelope.ciphertextBase64);
+      debugPrint('[DR.decrypt] SUCCESS: decrypted to "$plaintext"');
+      return plaintext;
+    } catch (e) {
+      debugPrint('[DR.decrypt] AES-GCM decrypt FAILED: $e');
+      rethrow;
+    }
   }
 
   static Future<List<int>> _dh(

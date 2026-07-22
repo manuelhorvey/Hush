@@ -51,6 +51,7 @@ void main() {
         messaging: _MockMessagingService(),
         cache: InMemoryCacheService(),
         tokenProvider: () => 'test-token',
+        userIdProvider: () => 'test-user',
       );
     });
 

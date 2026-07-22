@@ -7,11 +7,13 @@ class ConversationRepositoryImpl implements ConversationRepository {
   final MessagingService _messaging;
   final CacheService _cache;
   final String? Function() _tokenProvider;
+  final String? Function() _userIdProvider;
 
   ConversationRepositoryImpl({
     required this._messaging,
     required this._cache,
     required this._tokenProvider,
+    required this._userIdProvider,
   });
 
   String get _token {
@@ -99,6 +101,7 @@ class ConversationRepositoryImpl implements ConversationRepository {
       completedAt:
           info.expiresAt != null ? DateTime.tryParse(info.expiresAt!) : null,
       isVerified: false,
+      currentUserId: _userIdProvider(),
     );
   }
 

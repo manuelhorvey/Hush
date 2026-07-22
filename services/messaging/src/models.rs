@@ -64,6 +64,7 @@ pub struct SendMessageRequest {
 #[derive(Debug, Serialize)]
 pub struct MessageResponse {
     pub id: Uuid,
+    pub conversation_id: Uuid,
     pub sender_id: Uuid,
     pub ciphertext: String,
     pub created_at: DateTime<Utc>,

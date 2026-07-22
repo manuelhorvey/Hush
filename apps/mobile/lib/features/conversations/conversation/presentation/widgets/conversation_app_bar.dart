@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../../core/design_system/theme/theme.dart';
 
@@ -137,7 +138,9 @@ class ConversationAppBar extends StatelessWidget
                     button: true,
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_rounded),
-                      onPressed: () => Navigator.of(context).pop(),
+                      onPressed: () {
+                        if (context.canPop()) context.pop();
+                      },
                     ),
                   ),
 

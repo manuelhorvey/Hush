@@ -489,6 +489,8 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             DateSeparator(label: dateLabel),
             ...groupMessages.map((message) {
               final isMe = message.senderName == 'You';
+              debugPrint('[MSG] Rendering: senderName="${message.senderName}" senderId="${message.senderId}" '
+                  'isMe=$isMe content="${message.content.length > 30 ? message.content.substring(0, 30) : message.content}"');
               return MessageBubble(
                 message: message,
                 isMe: isMe,

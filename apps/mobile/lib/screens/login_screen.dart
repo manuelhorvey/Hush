@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 import '../core/design_system/components/buttons/hush_button.dart';
 import '../core/design_system/components/inputs/hush_text_field.dart';
 import '../core/network/network_errors.dart';
-import '../providers/auth_provider.dart';
+import '../core/providers/auth_state_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   String? _error;
   bool _loading = false;
@@ -34,7 +34,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _loading = true; _error = null; });
 
     try {
-      await context.read<AuthProvider>().login(username);
+      await ref.read(authStateProvider.notifier).login(username);
       if (!mounted) return;
       context.go('/chats');
     } on NetworkException catch (e) {
