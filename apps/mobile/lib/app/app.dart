@@ -13,8 +13,10 @@ import '../../core/providers/theme_mode_provider.dart';
 import '../../core/providers/websocket_service_provider.dart';
 import '../../core/storage/secure_storage.dart';
 import '../../features/auth/data/auth_providers.dart';
+import '../../features/auth/data/datasources/auth_local_datasource.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
+import '../../features/auth/presentation/providers/auth_state_provider.dart' as domain;
 import '../../features/identity/presentation/providers/identity_service_provider.dart';
 import '../../features/identity/providers/identity_provider.dart';
 import '../../providers/connectivity_provider.dart';
@@ -56,6 +58,9 @@ class HushApp extends StatelessWidget {
     apiIdentity.onRefreshToken = authRepository.refreshToken;
     apiMessaging.onRefreshToken = authRepository.refreshToken;
 
+    // New domain auth layer
+    final authLocalDataSource = AuthLocalDataSource(storage: storage);
+
     final cryptoService = CryptoService();
     final identityService = IdentityService(api: apiIdentity);
     final messagingService = MessagingService(api: apiMessaging);
@@ -72,6 +77,11 @@ class HushApp extends StatelessWidget {
         identityServiceProvider.overrideWithValue(identityService),
         cryptoServiceProvider.overrideWithValue(cryptoService),
         webSocketServiceProvider.overrideWithValue(wsService),
+
+        // New domain auth layer overrides
+        domain.authLocalDataSourceProvider.overrideWithValue(authLocalDataSource),
+        domain.identityServiceProvider.overrideWithValue(identityService),
+        domain.legacyApiClientProvider.overrideWithValue(apiIdentity),
       ],
       child: p.MultiProvider(
         providers: [
@@ -120,10 +130,23 @@ class _AppRootState extends ConsumerState<_AppRoot> {
     super.initState();
     _initAuth();
     _initNotifications();
+    _initSessionExpiryHandler();
+  }
+
+  void _initSessionExpiryHandler() {
+    // Wire the 401 → refreshSession trigger.
+    // When the AuthInterceptor receives a 401 and token refresh fails,
+    // it fires this callback, transitioning the domain auth state to
+    // AuthExpired. The auth guard then redirects to /session/expired.
+    final apiClient = ref.read(apiClientProvider);
+    apiClient.onSessionExpired = () {
+      ref.read(domain.domainAuthStateProvider.notifier).refreshSession();
+    };
   }
 
   Future<void> _initAuth() async {
     await ref.read(authStateProvider.notifier).init();
+    await ref.read(domain.domainAuthStateProvider.notifier).init();
   }
 
   Future<void> _initNotifications() async {

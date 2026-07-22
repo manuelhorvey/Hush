@@ -9,6 +9,15 @@ import 'network_errors.dart';
 
 class ApiClient {
   late final Dio _dio;
+  AuthInterceptor? _authInterceptor;
+
+  /// Callback fired when a 401 + token refresh failure occurs.
+  /// Set by the app root widget to notify the domain auth state.
+  void Function()? get onSessionExpired => _authInterceptor?.onSessionExpired;
+
+  set onSessionExpired(void Function()? callback) {
+    _authInterceptor?.onSessionExpired = callback;
+  }
 
   ApiClient({
     required EnvironmentConfig config,
@@ -26,9 +35,12 @@ class ApiClient {
       ),
     );
 
+    _authInterceptor = storage != null
+        ? AuthInterceptor(storage: storage)
+        : null;
+
     _dio.interceptors.addAll([
-      if (storage != null)
-        AuthInterceptor(storage: storage),
+      if (_authInterceptor != null) _authInterceptor!,
       if (config.enableLogging) LoggingInterceptor(),
       ErrorInterceptor(),
     ]);

@@ -8,13 +8,15 @@ import '../features/conversations/conversation/presentation/screens/conversation
 import '../../screens/conversation_complete_screen.dart';
 import '../../screens/conversation_destroyed_screen.dart';
 import '../../screens/splash_screen.dart';
-import '../../screens/welcome_screen.dart';
+import '../features/auth/presentation/screens/welcome_screen.dart';
+import '../features/auth/presentation/screens/identity_create_screen.dart';
+import '../features/auth/presentation/screens/device_registration_screen.dart';
+import '../features/auth/presentation/screens/session_expired_screen.dart';
 import '../../screens/login_screen.dart';
 import '../features/conversations/presentation/screens/new_conversation_screen.dart';
 import '../../screens/privacy_screen.dart';
 import '../../screens/security_screen.dart';
 import '../../screens/settings_screen.dart';
-import '../../features/identity/presentation/screens/identity_create_screen.dart';
 import '../../features/identity/presentation/screens/device_management_screen.dart';
 import '../../features/identity/presentation/screens/verification_screen.dart';
 import '../../core/design_system/components/feedback/error_state.dart';
@@ -22,18 +24,24 @@ import '../../core/routing/app_route.dart';
 import '../../core/routing/auth_guard.dart';
 import '../../core/providers/auth_state_provider.dart';
 import '../../core/providers/conversations_state_provider.dart';
+import '../../features/auth/presentation/providers/auth_state_provider.dart' as domain;
 import 'app_shell.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ref.watch(authStateProvider);
+  final domainAuth = ref.watch(domain.domainAuthStateProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoute.splash,
     debugLogDiagnostics: false,
-    redirect: (context, state) => evaluateAuthRedirect(auth, state.uri.path),
+    redirect: (context, state) => evaluateAuthRedirect(
+      auth,
+      state.uri.path,
+      isExpired: domainAuth.isExpired,
+    ),
     routes: [
       GoRoute(
         path: AppRoute.splash,
@@ -44,12 +52,20 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (_, _) => const WelcomeScreen(),
       ),
       GoRoute(
-        path: '/login',
+        path: AppRoute.login,
         builder: (_, _) => const LoginScreen(),
       ),
       GoRoute(
-        path: '/create-identity',
+        path: AppRoute.identityCreate,
         builder: (_, _) => const IdentityCreateScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.deviceRegistered,
+        builder: (_, _) => const DeviceRegistrationScreen(),
+      ),
+      GoRoute(
+        path: AppRoute.sessionExpired,
+        builder: (_, _) => const SessionExpiredScreen(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (_, _, navigationShell) =>

@@ -5,7 +5,11 @@ import '../../storage/secure_storage.dart';
 class AuthInterceptor extends Interceptor {
   final SecureStorageService _storage;
 
-  AuthInterceptor({required this._storage});
+  /// Called when a 401 occurs and token refresh also fails.
+  /// Signals that the session has expired and the UI should react.
+  void Function()? onSessionExpired;
+
+  AuthInterceptor({required this._storage, this.onSessionExpired});
 
   @override
   void onRequest(
@@ -41,6 +45,7 @@ class AuthInterceptor extends Interceptor {
           return;
         } catch (_) {
           await _storage.clearSession();
+          onSessionExpired?.call();
         }
       }
     }

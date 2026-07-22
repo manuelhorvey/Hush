@@ -139,7 +139,11 @@ class ConversationAppBar extends StatelessWidget
                     child: IconButton(
                       icon: const Icon(Icons.arrow_back_rounded),
                       onPressed: () {
-                        if (context.canPop()) context.pop();
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/chats');
+                        }
                       },
                     ),
                   ),
