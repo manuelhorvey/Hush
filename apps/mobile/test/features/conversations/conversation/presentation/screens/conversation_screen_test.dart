@@ -1,24 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hush_mobile/features/conversations/conversation/presentation/providers/conversation_detail_provider.dart';
 import 'package:hush_mobile/features/conversations/conversation/presentation/screens/conversation_screen.dart';
 import 'package:hush_mobile/features/conversations/conversation/presentation/widgets/conversation_input.dart';
 import 'package:hush_mobile/features/conversations/conversation/presentation/widgets/date_separator.dart';
 import 'package:hush_mobile/features/conversations/conversation/presentation/widgets/message_bubble.dart';
-import 'package:hush_mobile/features/conversations/conversation/models/message.dart';
+import 'package:hush_mobile/features/messaging/domain/entities/message.dart';
+import 'package:hush_mobile/features/messaging/presentation/providers/message_list_provider.dart';
 
-class _TestNotifier extends ConversationDetailNotifier {
+class _TestNotifier extends MessageListNotifier {
   static DateTime _nowMinus(int minutes) =>
       DateTime.now().subtract(Duration(minutes: minutes));
 
   @override
-  ConversationDetailState build() {
-    return ConversationDetailState(
-      screenStatus: ConversationScreenStatus.loaded,
+  MessageListState build() {
+    return MessageListState(
+      status: MessageScreenStatus.loaded,
       messages: [
         Message(
           id: 'test_1',
+          conversationId: 'conv_test',
           senderId: 'user_2',
           senderName: 'Sarah',
           content: 'Hey, how are you?',
@@ -26,9 +27,10 @@ class _TestNotifier extends ConversationDetailNotifier {
         ),
         Message(
           id: 'test_2',
+          conversationId: 'conv_test',
           senderId: 'user_1',
           senderName: 'You',
-          content: 'I\'m great, thanks!',
+          content: "I'm great, thanks!",
           createdAt: _nowMinus(30),
         ),
       ],
@@ -39,14 +41,85 @@ class _TestNotifier extends ConversationDetailNotifier {
 
   @override
   Future<void> load(String conversationId) async {
-    // No-op: already loaded with test data
+    // No-op: already loaded with test data in build()
   }
+
+  @override
+  Future<bool> sendMessage(String plaintext) async => true;
+
+  @override
+  Future<void> retryMessage(Message failedMessage) async {}
+
+  @override
+  void markLifecycle({
+    required bool isActive,
+    required String lifecycleStatus,
+    DateTime? completedAt,
+  }) {}
+
+  @override
+  Future<void> loadMore() async {}
+}
+
+class _EmptyTestNotifier extends MessageListNotifier {
+  @override
+  MessageListState build() => MessageListState(
+        status: MessageScreenStatus.loaded,
+        messages: [],
+        isActive: true,
+        lifecycleStatus: 'active',
+      );
+
+  @override
+  Future<void> load(String conversationId) async {}
+
+  @override
+  Future<bool> sendMessage(String plaintext) async => true;
+
+  @override
+  Future<void> retryMessage(Message failedMessage) async {}
+
+  @override
+  void markLifecycle({
+    required bool isActive,
+    required String lifecycleStatus,
+    DateTime? completedAt,
+  }) {}
+
+  @override
+  Future<void> loadMore() async {}
+}
+
+class _LoadingTestNotifier extends MessageListNotifier {
+  @override
+  MessageListState build() => const MessageListState(
+        status: MessageScreenStatus.loading,
+      );
+
+  @override
+  Future<void> load(String conversationId) async {}
+
+  @override
+  Future<bool> sendMessage(String plaintext) async => true;
+
+  @override
+  Future<void> retryMessage(Message failedMessage) async {}
+
+  @override
+  void markLifecycle({
+    required bool isActive,
+    required String lifecycleStatus,
+    DateTime? completedAt,
+  }) {}
+
+  @override
+  Future<void> loadMore() async {}
 }
 
 Widget createTestApp() {
   return ProviderScope(
     overrides: [
-      conversationDetailProvider.overrideWith(() => _TestNotifier()),
+      messageListProvider.overrideWith(() => _TestNotifier()),
     ],
     child: const MaterialApp(
       home: ConversationScreen(
@@ -106,11 +179,10 @@ void main() {
     });
 
     testWidgets('shows empty state when no messages', (tester) async {
-      final emptyNotifier = _EmptyTestNotifier();
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            conversationDetailProvider.overrideWith(() => emptyNotifier),
+            messageListProvider.overrideWith(() => _EmptyTestNotifier()),
           ],
           child: const MaterialApp(
             home: ConversationScreen(
@@ -127,11 +199,10 @@ void main() {
     });
 
     testWidgets('shows loading state initially', (tester) async {
-      final loadingNotifier = _LoadingTestNotifier();
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            conversationDetailProvider.overrideWith(() => loadingNotifier),
+            messageListProvider.overrideWith(() => _LoadingTestNotifier()),
           ],
           child: const MaterialApp(
             home: ConversationScreen(
@@ -143,8 +214,8 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.byType(CircularProgressIndicator), findsNothing);
       // Skeleton loading uses containers, not CircularProgressIndicator
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
     testWidgets('has accessibility semantics on messages', (tester) async {
@@ -173,31 +244,4 @@ void main() {
       expect(find.text('Type a message...'), findsOneWidget);
     });
   });
-}
-
-class _EmptyTestNotifier extends ConversationDetailNotifier {
-  @override
-  ConversationDetailState build() => ConversationDetailState(
-        screenStatus: ConversationScreenStatus.loaded,
-        messages: [],
-        isActive: true,
-        lifecycleStatus: 'active',
-      );
-
-  @override
-  Future<void> load(String conversationId) async {
-    // No-op: already in empty state
-  }
-}
-
-class _LoadingTestNotifier extends ConversationDetailNotifier {
-  @override
-  ConversationDetailState build() => ConversationDetailState(
-        screenStatus: ConversationScreenStatus.loading,
-      );
-
-  @override
-  Future<void> load(String conversationId) async {
-    // No-op: stay in loading state
-  }
 }

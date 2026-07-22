@@ -4,8 +4,9 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../../core/design_system/theme/theme.dart';
 import '../../../../../core/responsive/responsive_layout.dart';
-import '../../models/message.dart';
-import '../providers/conversation_detail_provider.dart';
+import '../../../../../features/messaging/domain/entities/message.dart';
+import '../../../../../features/messaging/presentation/providers/message_list_provider.dart';
+import '../../../../conversations/conversation/presentation/providers/conversation_detail_repository_provider.dart';
 import '../widgets/conversation_app_bar.dart';
 import '../widgets/conversation_input.dart';
 import '../widgets/date_separator.dart';
@@ -36,7 +37,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref
-          .read(conversationDetailProvider.notifier)
+          .read(messageListProvider.notifier)
           .load(widget.conversationId);
       _scrollToBottom();
     });
@@ -62,11 +63,13 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
 
   Future<void> _sendMessage(String text) async {
     final success = await ref
-        .read(conversationDetailProvider.notifier)
-        .sendMessage(widget.conversationId, text);
+        .read(messageListProvider.notifier)
+        .sendMessage(text);
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Message queued — will send when back online.')),
+        const SnackBar(
+          content: Text('Message could not be sent.'),
+        ),
       );
     }
     _scrollToBottom();
@@ -93,10 +96,15 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      final success = await ref
-          .read(conversationDetailProvider.notifier)
-          .completeConversation(widget.conversationId);
-      if (!success && mounted) {
+      final repo = ref.read(conversationDetailRepositoryProvider);
+      final success = await repo.completeConversation(widget.conversationId);
+      if (success && mounted) {
+        ref.read(messageListProvider.notifier).markLifecycle(
+              isActive: false,
+              lifecycleStatus: 'completed',
+              completedAt: DateTime.now(),
+            );
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to complete moment.')),
         );
@@ -129,10 +137,14 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
       ),
     );
     if (confirmed == true && mounted) {
-      final success = await ref
-          .read(conversationDetailProvider.notifier)
-          .destroyConversation(widget.conversationId);
-      if (!success && mounted) {
+      final repo = ref.read(conversationDetailRepositoryProvider);
+      final success = await repo.destroyConversation(widget.conversationId);
+      if (success && mounted) {
+        ref.read(messageListProvider.notifier).markLifecycle(
+              isActive: false,
+              lifecycleStatus: 'destroyed',
+            );
+      } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Failed to destroy moment.')),
         );
@@ -153,9 +165,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: Theme.of(ctx)
-                      .colorScheme
-                      .primaryContainer,
+                  color: Theme.of(ctx).colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Center(
@@ -188,10 +198,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final state = ref.watch(conversationDetailProvider);
+    final state = ref.watch(messageListProvider);
     final messages = state.messages;
 
-    // Group messages by date
+    // Group messages by date using the domain entity's dateGroupKey
     final groupedMessages = _groupByDate(messages);
 
     return Scaffold(
@@ -218,7 +228,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             Expanded(
               child: _buildBody(state, groupedMessages, cs),
             ),
-            if (state.screenStatus == ConversationScreenStatus.loaded &&
+            if (state.status == MessageScreenStatus.loaded &&
                 state.lifecycleStatus == 'completed')
               _buildCompletedBanner(cs)
             else if (state.lifecycleStatus != 'destroyed')
@@ -227,8 +237,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
               isActive: state.isActive && state.lifecycleStatus != 'destroyed',
               onSend: _sendMessage,
             ),
-            if (state.lifecycleStatus == 'destroyed')
-              _buildDestroyedBanner(cs),
+            if (state.lifecycleStatus == 'destroyed') _buildDestroyedBanner(cs),
           ],
         ),
       ),
@@ -236,16 +245,16 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
   }
 
   Widget _buildBody(
-    ConversationDetailState state,
+    MessageListState state,
     List<(String, List<Message>)> groupedMessages,
     ColorScheme cs,
   ) {
-    switch (state.screenStatus) {
-      case ConversationScreenStatus.loading:
+    switch (state.status) {
+      case MessageScreenStatus.loading:
         return _buildLoading(cs);
-      case ConversationScreenStatus.error:
-        return _buildError(cs);
-      case ConversationScreenStatus.loaded:
+      case MessageScreenStatus.error:
+        return _buildError(state, cs);
+      case MessageScreenStatus.loaded:
         if (state.messages.isEmpty) {
           return _buildEmpty(cs);
         }
@@ -277,8 +286,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     );
   }
 
-  Widget _buildError(ColorScheme cs) {
-    final state = ref.watch(conversationDetailProvider);
+  Widget _buildError(MessageListState state, ColorScheme cs) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(HushSpacing.xxl),
@@ -307,7 +315,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
             const SizedBox(height: HushSpacing.xl),
             OutlinedButton.icon(
               onPressed: () => ref
-                  .read(conversationDetailProvider.notifier)
+                  .read(messageListProvider.notifier)
                   .load(widget.conversationId),
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Try Again'),
@@ -515,11 +523,10 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     final result = <(String, List<Message>)>[];
     for (final key in order) {
       if (grouped.containsKey(key)) {
-        result.add((messageDateLabel(key), grouped[key]!));
+        result.add((_messageDateLabel(key), grouped[key]!));
         grouped.remove(key);
       }
     }
-    // Add remaining date groups in chronological order
     final remaining = grouped.entries.toList()
       ..sort((a, b) => b.key.compareTo(a.key));
     for (final entry in remaining) {
@@ -529,7 +536,7 @@ class _ConversationScreenState extends ConsumerState<ConversationScreen> {
     return result;
   }
 
-  String messageDateLabel(String key) {
+  String _messageDateLabel(String key) {
     final dateKeys = {
       'Today': 'Today',
       'Yesterday': 'Yesterday',

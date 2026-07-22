@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/design_system/theme/theme.dart';
-import '../../models/message.dart';
+import '../../../../messaging/domain/entities/message.dart';
+import '../../../../messaging/domain/entities/message_status.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
@@ -157,6 +158,24 @@ class MessageBubble extends StatelessWidget {
             Icons.check_rounded,
             size: 14,
             color: cs.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+        );
+      case MessageStatus.delivered:
+        return SizedBox(
+          width: 14,
+          child: Icon(
+            Icons.done_all_rounded,
+            size: 14,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.7),
+          ),
+        );
+      case MessageStatus.pending:
+        return SizedBox(
+          width: 14,
+          child: Icon(
+            Icons.schedule_rounded,
+            size: 14,
+            color: cs.onSurfaceVariant.withValues(alpha: 0.4),
           ),
         );
     }
